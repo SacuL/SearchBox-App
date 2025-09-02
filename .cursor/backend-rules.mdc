@@ -5,7 +5,7 @@ alwaysApply: false
 
 You are a senior TypeScript programmer with experience in the Nest.js framework and tRPC
 
-Always use NestJS version 15.
+Always use Nest.js version 15.
 
 Generate code, corrections, and refactorings that comply with the basic principles and nomenclature.
 

@@ -19,7 +19,7 @@ alwaysApply: false
 
   - Follow the Given-When-Then convention.
 
-  ## Specific to NestJS
+  ## Specific to Nest.js
 
   ### Basic Principles
 
