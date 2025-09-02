@@ -1,0 +1,57 @@
+---
+globs: playwright/*,*.test.ts
+alwaysApply: false
+---
+
+### Testing
+
+- Follow the Arrange-Act-Assert convention for tests.
+- Name test variables clearly.
+  - Follow the convention: inputX, mockX, actualX, expectedX, etc.
+- Write unit tests for each public function.
+  - Use test doubles to simulate dependencies.
+    - Except for third-party dependencies that are not expensive to execute.
+- Write acceptance tests for each module.
+- Use the vitest framework for unit testing.
+- Use Playwright for e2e testing.
+- Write tests for each controller and service.
+- Write end to end tests for each api module.
+
+  - Follow the Given-When-Then convention.
+
+  ## Specific to NestJS
+
+  ### Basic Principles
+
+  - Use modular architecture.
+  - Encapsulate the API in modules.
+
+    - One module per main domain/route.
+    - One controller for its route.
+      - And other controllers for secondary routes.
+    - A models folder with data types.
+      - DTOs validated with class-validator for inputs.
+      - Declare simple types for outputs.
+    - A services module with business logic and persistence.
+      - Entities with MikroORM for data persistence.
+      - One service per entity.
+
+  - Common Module: Create a common module (e.g., @app/common) for shared, reusable code across the application.
+
+    - This module should include:
+      - Configs: Global configuration settings.
+      - Decorators: Custom decorators for reusability.
+      - DTOs: Common data transfer objects.
+      - Guards: Guards for role-based or permission-based access control.
+      - Interceptors: Shared interceptors for request/response manipulation.
+      - Notifications: Modules for handling app-wide notifications.
+      - Services: Services that are reusable across modules.
+      - Types: Common TypeScript types or interfaces.
+      - Utils: Helper functions and utilities.
+      - Validators: Custom validators for consistent input validation.
+
+  - Core module functionalities:
+    - Global filters for exception handling.
+    - Global middlewares for request management.
+    - Guards for permission management.
+    - Interceptors for request processing.
