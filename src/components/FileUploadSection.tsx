@@ -9,6 +9,21 @@ export const FileUploadSection: React.FC = () => {
     sizeErrors: { name: string; size: number }[];
   }>({ fileTypeErrors: [], sizeErrors: [] });
 
+  // Upload queue state
+  const [uploadQueue, setUploadQueue] = useState<
+    {
+      id: string;
+      file: File;
+      status: 'pending' | 'uploading' | 'completed' | 'failed';
+      progress: number;
+      error?: string;
+    }[]
+  >([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Animation state to control fade-out timing
+  const [showFileSection, setShowFileSection] = useState(true);
+
   const handleFilesSelected = (files: File[]) => {
     const newFiles: File[] = [];
 
@@ -26,6 +41,7 @@ export const FileUploadSection: React.FC = () => {
 
     if (newFiles.length > 0) {
       setSelectedFiles((prev) => [...prev, ...newFiles]);
+      setShowFileSection(true); // Show the file section when new files are added
     }
   };
 
@@ -36,6 +52,7 @@ export const FileUploadSection: React.FC = () => {
   const handleClearAll = () => {
     setSelectedFiles([]);
     setValidationErrors({ fileTypeErrors: [], sizeErrors: [] }); // Clear validation errors when clearing files
+    setShowFileSection(false); // Hide the file section when clearing
   };
 
   const handleValidationError = (error: string) => {
@@ -67,10 +84,88 @@ export const FileUploadSection: React.FC = () => {
   };
 
   const handleUploadFiles = () => {
-    // TODO: Implement actual upload logic
-    console.log('Uploading files:', selectedFiles);
-    setSelectedFiles([]); // Clear files after upload
-    setValidationErrors({ fileTypeErrors: [], sizeErrors: [] }); // Clear validation errors when uploading
+    if (selectedFiles.length === 0) return;
+
+    // Initialize upload queue
+    const queue = selectedFiles.map((file) => ({
+      id: `${file.name}-${Date.now()}-${Math.random()}`,
+      file,
+      status: 'pending' as const,
+      progress: 0,
+    }));
+
+    // Start fade-out animation for all components
+    setShowFileSection(false);
+
+    // Wait for animation to complete, then show upload queue and start processing
+    setTimeout(() => {
+      setSelectedFiles([]);
+      setValidationErrors({ fileTypeErrors: [], sizeErrors: [] });
+      setUploadQueue(queue);
+      setIsUploading(true);
+      // Start processing the queue
+      processUploadQueue(queue);
+    }, 500); // Match the animation duration
+  };
+
+  const processUploadQueue = async (
+    queue: {
+      id: string;
+      file: File;
+      status: 'pending' | 'uploading' | 'completed' | 'failed';
+      progress: number;
+      error?: string;
+    }[],
+  ) => {
+    for (const queueItem of queue) {
+      // Update status to uploading
+      setUploadQueue((prev) =>
+        prev.map((item) =>
+          item.id === queueItem.id ? { ...item, status: 'uploading' } : item,
+        ),
+      );
+
+      try {
+        // Simulate upload progress
+        for (let progress = 0; progress <= 100; progress += 10) {
+          setUploadQueue((prev) =>
+            prev.map((item) =>
+              item.id === queueItem.id ? { ...item, progress } : item,
+            ),
+          );
+          await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate upload time
+        }
+
+        // Mark as completed
+        setUploadQueue((prev) =>
+          prev.map((item) =>
+            item.id === queueItem.id
+              ? { ...item, status: 'completed', progress: 100 }
+              : item,
+          ),
+        );
+      } catch (error) {
+        // Mark as failed
+        setUploadQueue((prev) =>
+          prev.map((item) =>
+            item.id === queueItem.id
+              ? {
+                  ...item,
+                  status: 'failed',
+                  error:
+                    error instanceof Error ? error.message : 'Upload failed',
+                }
+              : item,
+          ),
+        );
+      }
+    }
+
+    // All uploads completed
+    setIsUploading(false);
+
+    // Note: Upload queue remains visible to show completion status
+    // Selected files and validation errors are already cleared when upload started
   };
 
   return (
@@ -85,118 +180,231 @@ export const FileUploadSection: React.FC = () => {
           onValidationError={handleValidationError}
         />
 
-        {/* File type validation errors */}
-        {validationErrors.fileTypeErrors.length > 0 && (
-          <div className="mt-4 p-3 bg-orange-100 border border-orange-300 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-orange-700 font-medium">
-                ⚠️ Unsupported file types
-              </p>
-              <button
-                onClick={() =>
-                  setValidationErrors((prev) => ({
-                    ...prev,
-                    fileTypeErrors: [],
-                  }))
-                }
-                className="text-orange-500 hover:text-orange-700 p-1 rounded-full hover:bg-orange-200 transition-colors duration-200"
-                title="Close error message"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        {/* File type validation errors with fade animation */}
+        <div
+          className={`transition-all duration-500 ease-in-out ${
+            validationErrors.fileTypeErrors.length > 0 && showFileSection
+              ? 'opacity-100 transform translate-y-0'
+              : 'opacity-0 transform -translate-y-4 pointer-events-none'
+          }`}
+          style={{
+            minHeight:
+              validationErrors.fileTypeErrors.length > 0 && showFileSection
+                ? 'auto'
+                : '0px',
+            overflow: 'hidden',
+          }}
+        >
+          {validationErrors.fileTypeErrors.length > 0 && (
+            <div className="mt-4 p-3 bg-orange-100 border border-orange-300 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-orange-700 font-medium">
+                  ⚠️ Unsupported file types
+                </p>
+                <button
+                  onClick={() =>
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      fileTypeErrors: [],
+                    }))
+                  }
+                  className="text-orange-500 hover:text-orange-700 p-1 rounded-full hover:bg-orange-200 transition-colors duration-200"
+                  title="Close error message"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            {/* File type error content */}
-            <div className="text-sm text-orange-700">
-              {validationErrors.fileTypeErrors.map((fileName, index) => (
-                <div key={index} className="mb-2 last:mb-0">
-                  • {fileName}
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              {/* File type error content */}
+              <div className="text-sm text-orange-700">
+                {validationErrors.fileTypeErrors.map((fileName, index) => (
+                  <div key={index} className="mb-2 last:mb-0">
+                    • {fileName}
+                  </div>
+                ))}
+                <div className="mt-3 pt-2 border-t border-orange-200">
+                  Supported formats: .txt, .md, .docx, .pdf
                 </div>
-              ))}
-              <div className="mt-3 pt-2 border-t border-orange-200">
-                Supported formats: .txt, .md, .docx, .pdf
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* File size validation errors */}
-        {validationErrors.sizeErrors.length > 0 && (
-          <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-red-700 font-medium">
-                ⚠️ Files too large
-              </p>
-              <button
-                onClick={() =>
-                  setValidationErrors((prev) => ({ ...prev, sizeErrors: [] }))
-                }
-                className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-200 transition-colors duration-200"
-                title="Close error message"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        {/* File size validation errors with fade animation */}
+        <div
+          className={`transition-all duration-500 ease-in-out ${
+            validationErrors.sizeErrors.length > 0 && showFileSection
+              ? 'opacity-100 transform translate-y-0'
+              : 'opacity-0 transform -translate-y-4 pointer-events-none'
+          }`}
+          style={{
+            minHeight:
+              validationErrors.sizeErrors.length > 0 && showFileSection
+                ? 'auto'
+                : '0px',
+            overflow: 'hidden',
+          }}
+        >
+          {validationErrors.sizeErrors.length > 0 && (
+            <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-red-700 font-medium">
+                  ⚠️ Files too large
+                </p>
+                <button
+                  onClick={() =>
+                    setValidationErrors((prev) => ({ ...prev, sizeErrors: [] }))
+                  }
+                  className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-200 transition-colors duration-200"
+                  title="Close error message"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            {/* File size error content */}
-            <div className="text-sm text-red-700">
-              {validationErrors.sizeErrors.map(({ name, size }, index) => (
-                <div key={index} className="mb-2 last:mb-0">
-                  • {name} - {size}MB
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              {/* File size error content */}
+              <div className="text-sm text-red-700">
+                {validationErrors.sizeErrors.map(({ name, size }, index) => (
+                  <div key={index} className="mb-2 last:mb-0">
+                    • {name} - {size}MB
+                  </div>
+                ))}
+                <div className="mt-3 pt-2 border-t border-red-200">
+                  Maximum size per file: 50MB
                 </div>
-              ))}
-              <div className="mt-3 pt-2 border-t border-red-200">
-                Maximum size per file: 50MB
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Only show FileList when there are files */}
-        {selectedFiles.length > 0 && (
+        {/* Upload Queue Display */}
+        {uploadQueue.length > 0 && (
           <div className="mt-6">
-            <FileList files={selectedFiles} onRemoveFile={handleRemoveFile} />
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Upload Queue {isUploading && '(Processing...)'}
+            </h3>
+            <div className="space-y-3">
+              {uploadQueue.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {item.file.name}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        item.status === 'pending'
+                          ? 'bg-gray-100 text-gray-600'
+                          : item.status === 'uploading'
+                            ? 'bg-blue-100 text-blue-600'
+                            : item.status === 'completed'
+                              ? 'bg-green-100 text-green-600'
+                              : 'bg-red-100 text-red-600'
+                      }`}
+                    >
+                      {item.status === 'pending'
+                        ? 'Pending'
+                        : item.status === 'uploading'
+                          ? 'Uploading'
+                          : item.status === 'completed'
+                            ? 'Completed'
+                            : 'Failed'}
+                    </span>
+                  </div>
+
+                  {item.status === 'uploading' && (
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${item.progress}%` }}
+                      ></div>
+                    </div>
+                  )}
+
+                  {item.status === 'failed' && item.error && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Error: {item.error}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {selectedFiles.length > 0 && (
-          <div className="mt-6 flex justify-center space-x-4">
-            <button
-              onClick={handleClearAll}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-            >
-              Clear All
-            </button>
-            <button
-              onClick={handleUploadFiles}
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            >
-              Upload Files
-            </button>
-          </div>
-        )}
+        {/* FileList with fade animation */}
+        <div
+          className={`mt-6 transition-all duration-500 ease-in-out ${
+            selectedFiles.length > 0 && showFileSection
+              ? 'opacity-100 transform translate-y-0'
+              : 'opacity-0 transform -translate-y-4 pointer-events-none'
+          }`}
+          style={{
+            minHeight:
+              selectedFiles.length > 0 && showFileSection ? 'auto' : '0px',
+            overflow: 'hidden',
+          }}
+        >
+          {selectedFiles.length > 0 && (
+            <FileList files={selectedFiles} onRemoveFile={handleRemoveFile} />
+          )}
+        </div>
+
+        {/* Action buttons with fade animation */}
+        <div
+          className={`mt-6 flex justify-center space-x-4 transition-all duration-500 ease-in-out ${
+            selectedFiles.length > 0 && showFileSection
+              ? 'opacity-100 transform translate-y-0'
+              : 'opacity-0 transform -translate-y-4 pointer-events-none'
+          }`}
+          style={{
+            minHeight:
+              selectedFiles.length > 0 && showFileSection ? 'auto' : '0px',
+            overflow: 'hidden',
+          }}
+        >
+          {selectedFiles.length > 0 && (
+            <>
+              <button
+                onClick={handleClearAll}
+                className="px-6 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+              >
+                Clear All
+              </button>
+              <button
+                onClick={handleUploadFiles}
+                disabled={isUploading}
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Upload Files
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
