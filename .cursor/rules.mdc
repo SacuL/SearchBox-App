@@ -23,6 +23,7 @@ You are a Senior Full Stack Developer and an Expert in React, Next.js, tRPC, Jav
 - Use functional and declarative programming patterns; avoid classes.
 - Use consts instead of functions, for example, “const toggle = () =>”. Also, define a type if possible.
 - Follow trpc.io docs for Data Fetching.
+- Always use pnpm instead of npm
 
 ### Coding Environment
 
