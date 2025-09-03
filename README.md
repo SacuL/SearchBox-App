@@ -68,6 +68,8 @@ These items will not be included in this PoC due to time constraints and priorit
 4. Production-grade persistent storage (e.g., cloud databases)
 5. Responsive layout for mobile users
 6. OCR/LLM parsing of files.
+7. There are many file types we could support. To name a few: rtf, ebooks (epub, mobi, etc), presentation (ppt, pptx), spreadsheets (xls, xlsx), OpenDocument formats (odt, odp, ods)
+8. Support for archives (zip, tar, rar, 7z): unpack and parse all files archived.
 
 ## Technical Approach
 

@@ -1,4 +1,11 @@
-// File type is available globally in the browser
+import {
+  FileText,
+  FileImage,
+  Archive,
+  File,
+  FileSpreadsheet,
+  Presentation,
+} from 'lucide-react';
 
 interface FileListProps {
   files: File[];
@@ -6,15 +13,6 @@ interface FileListProps {
 }
 
 export const FileList: React.FC<FileListProps> = ({ files, onRemoveFile }) => {
-  if (files.length === 0) {
-    return (
-      <div className="text-center text-gray-500 py-8">
-        <p>No files selected</p>
-        <p className="text-sm">Select files using the upload button above</p>
-      </div>
-    );
-  }
-
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -23,12 +21,104 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemoveFile }) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getFileIcon = (fileType: string): string => {
-    if (fileType.includes('pdf')) return '📄';
-    if (fileType.includes('doc') || fileType.includes('docx')) return '📝';
-    if (fileType.includes('txt')) return '📄';
-    if (fileType.includes('image')) return '🖼️';
-    return '📁';
+  const getFileIcon = (file: File) => {
+    const fileType = file.type;
+    const fileName = file.name;
+    const hasExtension = fileName.includes('.');
+
+    if (fileType.includes('pdf'))
+      return <FileText className="w-6 h-6 text-red-600" />;
+    if (fileType.includes('doc'))
+      return <FileText className="w-6 h-6 text-blue-700" />;
+    if (fileType.includes('xls'))
+      return <FileSpreadsheet className="w-6 h-6 text-green-600" />;
+    if (fileType.includes('ppt'))
+      return <Presentation className="w-6 h-6 text-orange-600" />;
+    if (fileType.includes('txt'))
+      return <FileText className="w-6 h-6 text-gray-600" />;
+    if (fileType.includes('markdown') || fileType.includes('md'))
+      return <FileText className="w-6 h-6 text-emerald-600" />;
+    if (fileType.includes('image'))
+      return <FileImage className="w-6 h-6 text-purple-600" />;
+    if (
+      fileType.includes('zip') ||
+      fileType.includes('rar') ||
+      fileType.includes('7z')
+    )
+      return <Archive className="w-6 h-6 text-yellow-600" />;
+
+    // If no MIME type, check if file has extension
+    if (!hasExtension) {
+      return <File className="w-6 h-6 text-slate-400" />; // Lighter gray for no extension
+    }
+
+    return <File className="w-6 h-6 text-gray-500" />; // Regular gray for unknown types with extension
+  };
+
+  const getFileTypeDisplay = (file: File): string => {
+    // If we have a MIME type, try to map it to a friendly name
+    if (file.type && file.type !== '') {
+      const mimeType = file.type.toLowerCase();
+
+      // Common MIME type mappings
+      if (mimeType.includes('pdf')) return 'PDF';
+      if (
+        mimeType.includes('wordprocessingml.document') ||
+        mimeType.includes('doc')
+      )
+        return 'DOCX';
+      if (
+        mimeType.includes('spreadsheetml.sheet') ||
+        mimeType.includes('excel')
+      )
+        return 'XLSX';
+      if (
+        mimeType.includes('presentationml.presentation') ||
+        mimeType.includes('powerpoint')
+      )
+        return 'PPTX';
+      if (mimeType.includes('text/plain')) return 'TXT';
+      if (
+        mimeType.includes('text/markdown') ||
+        mimeType.includes('text/x-markdown')
+      )
+        return 'Markdown';
+      if (mimeType.includes('image/')) return 'Image';
+      if (
+        mimeType.includes('zip') ||
+        mimeType.includes('rar') ||
+        mimeType.includes('7z')
+      )
+        return 'Archive';
+    }
+
+    // If no MIME type or unknown MIME type, try to extract extension from filename
+    const fileName = file.name;
+    const lastDotIndex = fileName.lastIndexOf('.');
+
+    if (lastDotIndex > 0 && lastDotIndex < fileName.length - 1) {
+      // Extract the extension (everything after the last dot)
+      const extension = fileName.substring(lastDotIndex + 1).toLowerCase();
+
+      // Map common extensions to friendly names
+      if (extension === 'md') return 'Markdown';
+      if (extension === 'txt') return 'Text';
+      if (extension === 'doc') return 'DOC';
+      if (extension === 'docx') return 'DOCX';
+      if (extension === 'xls') return 'XLS';
+      if (extension === 'xlsx') return 'XLSX';
+      if (extension === 'ppt') return 'PPT';
+      if (extension === 'pptx') return 'PPTX';
+      if (extension === 'pdf') return 'PDF';
+      if (extension === 'zip' || extension === 'rar' || extension === '7z')
+        return 'Archive';
+
+      // Return extension in uppercase for unknown types
+      return extension.toUpperCase();
+    }
+
+    // If no extension found, return empty string
+    return '';
   };
 
   return (
@@ -44,13 +134,14 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemoveFile }) => {
             className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
           >
             <div className="flex items-center space-x-3">
-              <span className="text-2xl">{getFileIcon(file.type)}</span>
+              {getFileIcon(file)}
               <div className="flex flex-col">
                 <span className="font-medium text-gray-900 truncate max-w-xs">
                   {file.name}
                 </span>
                 <span className="text-sm text-gray-500">
-                  {formatFileSize(file.size)} • {file.type || 'Unknown type'}
+                  {formatFileSize(file.size)}
+                  {getFileTypeDisplay(file) && ` • ${getFileTypeDisplay(file)}`}
                 </span>
               </div>
             </div>

@@ -24,6 +24,7 @@ You are a Senior Full Stack Developer and an Expert in React, Next.js, tRPC, Jav
 - Use consts instead of functions, for example, “const toggle = () =>”. Also, define a type if possible.
 - Follow trpc.io docs for Data Fetching.
 - Always use pnpm instead of npm
+- Check for Typescript errors with "pnpm run typecheck"
 
 ### Coding Environment
 
