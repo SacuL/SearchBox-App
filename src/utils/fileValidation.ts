@@ -41,10 +41,7 @@ export const validateFile = (file: File, maxSize: number): ValidationResult => {
     const isMimeTypeValid = ALLOWED_MIME_TYPES.some((mimeType) => {
       const fileTypeLower = file.type.toLowerCase();
       const mimeTypeLower = mimeType.toLowerCase();
-      return (
-        fileTypeLower.includes(mimeTypeLower) ||
-        mimeTypeLower.includes(fileTypeLower)
-      );
+      return fileTypeLower.includes(mimeTypeLower) || mimeTypeLower.includes(fileTypeLower);
     });
 
     if (isMimeTypeValid) {
@@ -77,10 +74,7 @@ export const validateFile = (file: File, maxSize: number): ValidationResult => {
 };
 
 // Format validation errors into a clean, user-friendly message
-export const formatValidationErrors = (
-  rejectedFiles: RejectedFile[],
-  maxSize: number,
-): string => {
+export const formatValidationErrors = (rejectedFiles: RejectedFile[], maxSize: number): string => {
   if (rejectedFiles.length === 0) return '';
 
   // Group errors by type for cleaner display

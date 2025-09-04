@@ -6,33 +6,59 @@ const ALLOWED_FILE_TYPES = ['txt', 'md', 'docx', 'pdf'] as const;
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
 
 // File upload input schema
-const fileUploadSchema = z.object({
-  fileName: z.string().min(1, 'File name is required'),
-  fileSize: z
-    .number()
-    .max(MAX_FILE_SIZE, `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`),
-  fileType: z.string().refine(
-    (type) => {
-      // Check if the file type matches our allowed types
-      return ALLOWED_FILE_TYPES.some(
-        (allowedType) =>
-          type.toLowerCase().includes(allowedType) ||
-          type.toLowerCase().includes('text/plain') || // for .txt files
-          type.toLowerCase().includes('txt') || // for .txt files
-          type.toLowerCase().includes('text/markdown') || // for .md files
-          type.toLowerCase().includes('md') || // for .md files
-          type.toLowerCase().includes('application/pdf') || // for .pdf files
-          type.toLowerCase().includes('pdf') || // for .pdf files
-          type
-            .toLowerCase()
-            .includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document'), // for .docx files
-        type.toLowerCase().includes('docx'), // for .docx files
-      );
+const fileUploadSchema = z
+  .object({
+    fileName: z.string().min(1, 'File name is required'),
+    fileSize: z
+      .number()
+      .max(MAX_FILE_SIZE, `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`),
+    fileType: z.string().refine(
+      (type) => {
+        // If MIME type is empty or undefined, check file extension instead
+        if (!type || type.trim() === '' || type.trim() === 'unknown') {
+          return true; // Allow empty MIME types - will be validated by file extension
+        }
+
+        // Check if the file type matches our allowed types
+        return ALLOWED_FILE_TYPES.some(
+          (allowedType) =>
+            type.toLowerCase().includes(allowedType) ||
+            type.toLowerCase().includes('text/plain') || // for .txt files
+            type.toLowerCase().includes('txt') || // for .txt files
+            type.toLowerCase().includes('markdown') || // for .md files
+            type.toLowerCase().includes('md') || // for .md files
+            type.toLowerCase().includes('application/pdf') || // for .pdf files
+            type.toLowerCase().includes('pdf') || // for .pdf files
+            type
+              .toLowerCase()
+              .includes(
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              ) || // for .docx files
+            type.toLowerCase().includes('docx'), // for .docx files
+        );
+      },
+      `File type not supported. Allowed types: ${ALLOWED_FILE_TYPES.join(', ')}`,
+    ),
+    fileContent: z.string().optional(), // For text-based files
+  })
+  .refine(
+    (data) => {
+      // Additional validation: if MIME type is empty, validate by file extension
+      if (!data.fileType || data.fileType.trim() === '' || data.fileType.trim() === 'unknown') {
+        const fileExtension = data.fileName.split('.').pop()?.toLowerCase();
+        if (!fileExtension) {
+          return false; // No extension found
+        }
+        // Check if the file extension is in the allowed file types
+        return ALLOWED_FILE_TYPES.some((allowedType) => allowedType === fileExtension);
+      }
+      return true; // MIME type validation already passed
     },
-    `File type not supported. Allowed types: ${ALLOWED_FILE_TYPES.join(', ')}`,
-  ),
-  fileContent: z.string().optional(), // For text-based files
-});
+    {
+      message: `File extension not supported. Allowed extensions: ${ALLOWED_FILE_TYPES.join(', ')}`,
+      path: ['fileName'], // This error will be associated with the fileName field
+    },
+  );
 
 export const uploadRouter = router({
   // Validate file before upload
