@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileUpload } from './FileUpload';
 import { FileList } from './FileList';
+import { trpc } from '../utils/trpc';
 
 export const FileUploadSection: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -23,6 +24,9 @@ export const FileUploadSection: React.FC = () => {
 
   // Animation state to control fade-out timing
   const [showFileSection, setShowFileSection] = useState(true);
+
+  // tRPC mutation hook for file uploads
+  const uploadFileMutation = trpc.upload.uploadFile.useMutation();
 
   const handleFilesSelected = (files: File[]) => {
     const newFiles: File[] = [];
@@ -126,24 +130,36 @@ export const FileUploadSection: React.FC = () => {
       );
 
       try {
-        // Simulate upload progress
-        for (let progress = 0; progress <= 100; progress += 10) {
+        // Call the actual tRPC upload route
+        const result = await uploadFileMutation.mutateAsync({
+          fileName: queueItem.file.name,
+          fileSize: queueItem.file.size,
+          fileType: queueItem.file.type || 'unknown',
+        });
+
+        if (result.success) {
+          // Mark as completed
           setUploadQueue((prev) =>
             prev.map((item) =>
-              item.id === queueItem.id ? { ...item, progress } : item,
+              item.id === queueItem.id
+                ? { ...item, status: 'completed', progress: 100 }
+                : item,
             ),
           );
-          await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate upload time
+        } else {
+          // Mark as failed
+          setUploadQueue((prev) =>
+            prev.map((item) =>
+              item.id === queueItem.id
+                ? {
+                    ...item,
+                    status: 'failed',
+                    error: result.error || 'Upload failed',
+                  }
+                : item,
+            ),
+          );
         }
-
-        // Mark as completed
-        setUploadQueue((prev) =>
-          prev.map((item) =>
-            item.id === queueItem.id
-              ? { ...item, status: 'completed', progress: 100 }
-              : item,
-          ),
-        );
       } catch (error) {
         // Mark as failed
         setUploadQueue((prev) =>

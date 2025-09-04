@@ -10,10 +10,7 @@ const fileUploadSchema = z.object({
   fileName: z.string().min(1, 'File name is required'),
   fileSize: z
     .number()
-    .max(
-      MAX_FILE_SIZE,
-      `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
-    ),
+    .max(MAX_FILE_SIZE, `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`),
   fileType: z.string().refine(
     (type) => {
       // Check if the file type matches our allowed types
@@ -21,13 +18,15 @@ const fileUploadSchema = z.object({
         (allowedType) =>
           type.toLowerCase().includes(allowedType) ||
           type.toLowerCase().includes('text/plain') || // for .txt files
+          type.toLowerCase().includes('txt') || // for .txt files
           type.toLowerCase().includes('text/markdown') || // for .md files
+          type.toLowerCase().includes('md') || // for .md files
           type.toLowerCase().includes('application/pdf') || // for .pdf files
+          type.toLowerCase().includes('pdf') || // for .pdf files
           type
             .toLowerCase()
-            .includes(
-              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            ), // for .docx files
+            .includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document'), // for .docx files
+        type.toLowerCase().includes('docx'), // for .docx files
       );
     },
     `File type not supported. Allowed types: ${ALLOWED_FILE_TYPES.join(', ')}`,
@@ -37,65 +36,60 @@ const fileUploadSchema = z.object({
 
 export const uploadRouter = router({
   // Validate file before upload
-  validateFile: publicProcedure
-    .input(fileUploadSchema)
-    .mutation(async ({ input }) => {
-      try {
-        // Additional validation logic can go here
-        const fileInfo = {
-          fileName: input.fileName,
-          fileSize: input.fileSize,
-          fileType: input.fileType,
-          isValid: true,
-          message: 'File validation successful',
-        };
+  validateFile: publicProcedure.input(fileUploadSchema).mutation(async ({ input }) => {
+    try {
+      // Additional validation logic can go here
+      const fileInfo = {
+        fileName: input.fileName,
+        fileSize: input.fileSize,
+        fileType: input.fileType,
+        isValid: true,
+        message: 'File validation successful',
+      };
 
-        return {
-          success: true,
-          data: fileInfo,
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error:
-            error instanceof Error ? error.message : 'Unknown error occurred',
-        };
-      }
-    }),
+      return {
+        success: true,
+        data: fileInfo,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+    }
+  }),
 
   // Upload file (simulated for now - will be implemented with actual file storage)
-  uploadFile: publicProcedure
-    .input(fileUploadSchema)
-    .mutation(async ({ input }) => {
-      try {
-        // Generate a unique upload ID
-        const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  uploadFile: publicProcedure.input(fileUploadSchema).mutation(async ({ input }) => {
+    try {
+      // Generate a unique upload ID
+      const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-        // Simulate file processing
-        const uploadResult = {
-          fileName: input.fileName,
-          fileSize: input.fileSize,
-          fileType: input.fileType,
-          uploadId,
-          message: 'File uploaded successfully',
-        };
+      // Simulate file processing
+      const uploadResult = {
+        fileName: input.fileName,
+        fileSize: input.fileSize,
+        fileType: input.fileType,
+        uploadId,
+        message: 'File uploaded successfully',
+      };
 
-        // TODO: Implement actual file storage logic here
-        // - Save file to disk or cloud storage
-        // - Store metadata in database
-        // - Process file content for indexing
+      // TODO: Implement actual file storage logic here
+      // - Save file to disk or cloud storage
+      // - Store metadata in database
+      // - Process file content for indexing
 
-        return {
-          success: true,
-          data: uploadResult,
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'File upload failed',
-        };
-      }
-    }),
+      return {
+        success: true,
+        data: uploadResult,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'File upload failed',
+      };
+    }
+  }),
 
   // Get upload status
   getUploadStatus: publicProcedure
