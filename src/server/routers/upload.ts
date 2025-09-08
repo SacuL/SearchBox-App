@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { publicProcedure, router } from '../trpc';
 import { StorageFactory } from '../storage';
+import { getSearchService } from '../search';
 
 // Define allowed file types
 export const ALLOWED_FILE_TYPES = ['txt', 'md', 'docx', 'pdf'] as const;
@@ -58,6 +59,10 @@ export const uploadRouter = router({
     .mutation(async ({ input }) => {
       try {
         const storage = await StorageFactory.getStorage();
+
+        // Get file metadata before deletion to check if it was indexed
+        const metadata = await storage.getFileMetadata(input.fileId);
+
         const success = await storage.deleteFile(input.fileId);
 
         if (!success) {
@@ -65,6 +70,18 @@ export const uploadRouter = router({
             success: false,
             error: 'File not found or could not be deleted',
           };
+        }
+
+        // Remove from search index if it was indexed
+        if (metadata) {
+          try {
+            const searchService = getSearchService();
+            searchService.removeDocument(input.fileId);
+            console.log(`🗑️ Removed file ${input.fileId} from search index`);
+          } catch (error) {
+            console.error(`❌ Failed to remove file ${input.fileId} from search index:`, error);
+            // Don't fail the deletion if search index removal fails
+          }
         }
 
         return {

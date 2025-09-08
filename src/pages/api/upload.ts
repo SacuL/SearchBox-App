@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import multer from 'multer';
 import { StorageFactory } from '../../server/storage';
+import { getSearchService } from '../../server/search';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '../../server/routers/upload';
 
 // Extend NextApiRequest to include file property
@@ -27,6 +28,25 @@ const upload = multer({
     cb(null, true);
   },
 });
+
+// Function to extract content from text-based files
+function extractTextContent(fileBuffer: Buffer, fileName: string): string {
+  try {
+    // Convert buffer to string (assuming UTF-8 encoding)
+    const content = fileBuffer.toString('utf-8');
+    console.log(`📄 Extracted content from ${fileName}: ${content.length} characters`);
+    return content;
+  } catch (error) {
+    console.error(`❌ Failed to extract content from ${fileName}:`, error);
+    return '';
+  }
+}
+
+// Function to check if file should be indexed
+function shouldIndexFile(fileName: string, _mimeType: string): boolean {
+  const fileExtension = fileName.split('.').pop()?.toLowerCase();
+  return fileExtension === 'txt' || fileExtension === 'md';
+}
 
 // Disable body parsing for multer
 export const config = {
@@ -114,6 +134,37 @@ export default async function handler(req: NextApiRequestWithFile, res: NextApiR
         : 'No metadata',
     );
 
+    // Index file content if it's a TXT or MD file
+    if (metadata && shouldIndexFile(file.originalname, file.mimetype)) {
+      console.log('🔍 Indexing file content...');
+      try {
+        const searchService = getSearchService();
+        const content = extractTextContent(file.buffer, file.originalname);
+
+        if (content) {
+          const searchableDocument = {
+            id: metadata.id,
+            fileName: metadata.fileName,
+            originalName: metadata.originalName,
+            fileExtension: metadata.fileExtension,
+            mimeType: metadata.mimeType,
+            uploadDate: metadata.uploadDate,
+            fileSize: metadata.fileSize,
+          };
+
+          searchService.addDocument(searchableDocument, content);
+          console.log('✅ File indexed successfully');
+        } else {
+          console.log('⚠️ No content extracted, skipping indexing');
+        }
+      } catch (error) {
+        console.error('❌ Failed to index file:', error);
+        // Don't fail the upload if indexing fails
+      }
+    } else {
+      console.log('⏭️ File type not supported for indexing, skipping');
+    }
+
     console.log('✅ Upload successful!');
     return res.status(200).json({
       success: true,
@@ -124,6 +175,7 @@ export default async function handler(req: NextApiRequestWithFile, res: NextApiR
         fileSize: metadata?.fileSize,
         mimeType: metadata?.mimeType,
         uploadDate: metadata?.uploadDate,
+        indexed: shouldIndexFile(file.originalname, file.mimetype),
         message: 'File uploaded successfully',
       },
     });
