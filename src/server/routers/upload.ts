@@ -1,118 +1,98 @@
 import { z } from 'zod';
 import { publicProcedure, router } from '../trpc';
+import { StorageFactory } from '../storage';
 
 // Define allowed file types
-const ALLOWED_FILE_TYPES = ['txt', 'md', 'docx', 'pdf'] as const;
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
-
-// File upload input schema
-const fileUploadSchema = z
-  .object({
-    fileName: z.string().min(1, 'File name is required'),
-    fileSize: z
-      .number()
-      .max(MAX_FILE_SIZE, `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`),
-    fileType: z.string().refine(
-      (type) => {
-        // If MIME type is empty or undefined, check file extension instead
-        if (!type || type.trim() === '' || type.trim() === 'unknown') {
-          return true; // Allow empty MIME types - will be validated by file extension
-        }
-
-        // Check if the file type matches our allowed types
-        return ALLOWED_FILE_TYPES.some(
-          (allowedType) =>
-            type.toLowerCase().includes(allowedType) ||
-            type.toLowerCase().includes('text/plain') || // for .txt files
-            type.toLowerCase().includes('txt') || // for .txt files
-            type.toLowerCase().includes('markdown') || // for .md files
-            type.toLowerCase().includes('md') || // for .md files
-            type.toLowerCase().includes('application/pdf') || // for .pdf files
-            type.toLowerCase().includes('pdf') || // for .pdf files
-            type
-              .toLowerCase()
-              .includes(
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-              ) || // for .docx files
-            type.toLowerCase().includes('docx'), // for .docx files
-        );
-      },
-      `File type not supported. Allowed types: ${ALLOWED_FILE_TYPES.join(', ')}`,
-    ),
-    fileContent: z.string().optional(), // For text-based files
-  })
-  .refine(
-    (data) => {
-      // Additional validation: if MIME type is empty, validate by file extension
-      if (!data.fileType || data.fileType.trim() === '' || data.fileType.trim() === 'unknown') {
-        const fileExtension = data.fileName.split('.').pop()?.toLowerCase();
-        if (!fileExtension) {
-          return false; // No extension found
-        }
-        // Check if the file extension is in the allowed file types
-        return ALLOWED_FILE_TYPES.some((allowedType) => allowedType === fileExtension);
-      }
-      return true; // MIME type validation already passed
-    },
-    {
-      message: `File extension not supported. Allowed extensions: ${ALLOWED_FILE_TYPES.join(', ')}`,
-      path: ['fileName'], // This error will be associated with the fileName field
-    },
-  );
+export const ALLOWED_FILE_TYPES = ['txt', 'md', 'docx', 'pdf'] as const;
+export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
 
 export const uploadRouter = router({
-  // Validate file before upload
-  validateFile: publicProcedure.input(fileUploadSchema).mutation(async ({ input }) => {
+  // Get file metadata
+  getFileMetadata: publicProcedure
+    .input(z.object({ fileId: z.string() }))
+    .query(async ({ input }) => {
+      try {
+        const storage = await StorageFactory.getStorage();
+        const metadata = await storage.getFileMetadata(input.fileId);
+
+        if (!metadata) {
+          return {
+            success: false,
+            error: 'File not found',
+          };
+        }
+
+        return {
+          success: true,
+          data: metadata,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to get file metadata',
+        };
+      }
+    }),
+
+  // List all uploaded files
+  listFiles: publicProcedure.query(async () => {
     try {
-      // Additional validation logic can go here
-      const fileInfo = {
-        fileName: input.fileName,
-        fileSize: input.fileSize,
-        fileType: input.fileType,
-        isValid: true,
-        message: 'File validation successful',
-      };
+      const storage = await StorageFactory.getStorage();
+      const files = await storage.listFiles();
 
       return {
         success: true,
-        data: fileInfo,
+        data: files,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error: error instanceof Error ? error.message : 'Failed to list files',
       };
     }
   }),
 
-  // Upload file (simulated for now - will be implemented with actual file storage)
-  uploadFile: publicProcedure.input(fileUploadSchema).mutation(async ({ input }) => {
+  // Delete a file
+  deleteFile: publicProcedure
+    .input(z.object({ fileId: z.string() }))
+    .mutation(async ({ input }) => {
+      try {
+        const storage = await StorageFactory.getStorage();
+        const success = await storage.deleteFile(input.fileId);
+
+        if (!success) {
+          return {
+            success: false,
+            error: 'File not found or could not be deleted',
+          };
+        }
+
+        return {
+          success: true,
+          message: 'File deleted successfully',
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to delete file',
+        };
+      }
+    }),
+
+  // Check if file exists
+  fileExists: publicProcedure.input(z.object({ fileId: z.string() })).query(async ({ input }) => {
     try {
-      // Generate a unique upload ID
-      const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      // Simulate file processing
-      const uploadResult = {
-        fileName: input.fileName,
-        fileSize: input.fileSize,
-        fileType: input.fileType,
-        uploadId,
-        message: 'File uploaded successfully',
-      };
-
-      // TODO: Implement actual file storage logic here
-      // - Save file to disk or cloud storage
-      // - Store metadata in database
-      // - Process file content for indexing
+      const storage = await StorageFactory.getStorage();
+      const exists = await storage.fileExists(input.fileId);
 
       return {
         success: true,
-        data: uploadResult,
+        data: { exists },
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'File upload failed',
+        error: error instanceof Error ? error.message : 'Failed to check file existence',
       };
     }
   }),

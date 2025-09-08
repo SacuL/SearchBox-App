@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { FileUpload } from './FileUpload';
 import { FileList } from './FileList';
-import { trpc } from '../utils/trpc';
 
 export const FileUploadSection: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -24,9 +23,6 @@ export const FileUploadSection: React.FC = () => {
 
   // Animation state to control fade-out timing
   const [showFileSection, setShowFileSection] = useState(true);
-
-  // tRPC mutation hook for file uploads
-  const uploadFileMutation = trpc.upload.uploadFile.useMutation();
 
   const handleFilesSelected = (files: File[]) => {
     const newFiles: File[] = [];
@@ -126,12 +122,15 @@ export const FileUploadSection: React.FC = () => {
       );
 
       try {
-        // Call the actual tRPC upload route
-        const result = await uploadFileMutation.mutateAsync({
-          fileName: queueItem.file.name,
-          fileSize: queueItem.file.size,
-          fileType: queueItem.file.type || 'unknown',
+        const formData = new FormData();
+        formData.append('file', queueItem.file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
         });
+
+        const result = await response.json();
 
         if (result.success) {
           // Mark as completed
@@ -238,12 +237,15 @@ export const FileUploadSection: React.FC = () => {
     );
 
     try {
-      // Call the actual tRPC upload route
-      const result = await uploadFileMutation.mutateAsync({
-        fileName: queueItem.file.name,
-        fileSize: queueItem.file.size,
-        fileType: queueItem.file.type || 'unknown',
+      const formData = new FormData();
+      formData.append('file', queueItem.file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
       });
+
+      const result = await response.json();
 
       if (result.success) {
         // Mark as completed
