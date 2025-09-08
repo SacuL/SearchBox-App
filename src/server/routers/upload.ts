@@ -3,10 +3,6 @@ import { publicProcedure, router } from '../trpc';
 import { StorageFactory } from '../storage';
 import { getSearchService } from '../search';
 
-// Define allowed file types
-export const ALLOWED_FILE_TYPES = ['txt', 'md', 'docx', 'pdf'] as const;
-export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
-
 export const uploadRouter = router({
   // Get file metadata
   getFileMetadata: publicProcedure

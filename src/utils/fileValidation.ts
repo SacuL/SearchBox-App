@@ -1,14 +1,10 @@
+import { SUPPORTED_EXTENSIONS, FILE_TYPE_REGISTRY } from '../server/business/extract/fileTypes';
+
 // File validation utilities
-export const ALLOWED_FILE_TYPES = ['.txt', '.md', '.docx', '.pdf'];
-export const ALLOWED_MIME_TYPES = [
-  'text/plain',
-  'text/markdown',
-  'text/x-markdown',
-  'application/pdf',
-  'application/x-pdf',
-  'binary/octet-stream', // Some systems use this for PDFs
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-];
+export const ALLOWED_FILE_TYPES = SUPPORTED_EXTENSIONS.map((ext) => `.${ext}`);
+export const ALLOWED_MIME_TYPES = Object.values(FILE_TYPE_REGISTRY).map(
+  (fileType) => fileType.mimeType,
+);
 
 export interface ValidationResult {
   isValid: boolean;

@@ -1,7 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import multer from 'multer';
-import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '../../server/routers/upload';
 import { storeFile, extractFileContent, indexFileContent } from '../../server/business';
+
+import { SUPPORTED_EXTENSIONS } from '../../server/business/extract/fileTypes';
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
 
 // Extend NextApiRequest to include file property
 interface NextApiRequestWithFile extends NextApiRequest {
@@ -18,9 +21,9 @@ const upload = multer({
     // Check file extension
     const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
 
-    if (!fileExtension || !ALLOWED_FILE_TYPES.includes(fileExtension as any)) {
+    if (!fileExtension || !SUPPORTED_EXTENSIONS.includes(fileExtension as any)) {
       return cb(
-        new Error(`File type not supported. Allowed types: ${ALLOWED_FILE_TYPES.join(', ')}`),
+        new Error(`File type not supported. Allowed types: ${SUPPORTED_EXTENSIONS.join(', ')}`),
       );
     }
 
@@ -97,12 +100,7 @@ export default async function handler(req: NextApiRequestWithFile, res: NextApiR
 
     // Step 3: Index the content (if extraction was successful and content exists)
     let indexed = false;
-    if (
-      extractResult.success &&
-      extractResult.shouldIndex &&
-      extractResult.content &&
-      storeResult.metadata
-    ) {
+    if (extractResult.success && extractResult.content && storeResult.metadata) {
       console.log('🔍 Step 3: Indexing content for search...');
       const indexResult = await indexFileContent(storeResult.metadata, extractResult.content);
 
