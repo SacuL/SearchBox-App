@@ -1,5 +1,5 @@
 import { StorageFactory } from '../storage';
-import { FileMetadata, StorageResult } from '../storage/types';
+import { FileMetadata } from '../storage/types';
 
 export interface StoreResult {
   success: boolean;
@@ -62,7 +62,7 @@ export async function storeFile(
     return {
       success: true,
       fileId: result.fileId,
-      metadata,
+      metadata: metadata || undefined,
     };
   } catch (error) {
     console.error('❌ Store operation failed:', error);
