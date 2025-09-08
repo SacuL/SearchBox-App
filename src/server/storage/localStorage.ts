@@ -8,7 +8,7 @@ export class LocalStorage implements StorageInterface {
   private uploadsDir: string;
   private metadataFile: string;
 
-  constructor(uploadsDir: string = 'uploads') {
+  constructor(uploadsDir = 'uploads') {
     this.uploadsDir = uploadsDir;
     this.metadataFile = join(uploadsDir, 'metadata.json');
   }
@@ -27,7 +27,7 @@ export class LocalStorage implements StorageInterface {
         await fs.writeFile(this.metadataFile, JSON.stringify({}, null, 2));
       }
     } catch (error) {
-      throw new Error(`Failed to initialize local storage: ${error}`);
+      throw new Error(`Failed to initialize local storage: ${String(error)}`);
     }
   }
 
@@ -63,7 +63,7 @@ export class LocalStorage implements StorageInterface {
     try {
       const data = await fs.readFile(this.metadataFile, 'utf-8');
       return JSON.parse(data);
-    } catch (error) {
+    } catch {
       return {};
     }
   }
@@ -161,7 +161,7 @@ export class LocalStorage implements StorageInterface {
 
       const fileBuffer = await fs.readFile(metadata.filePath);
       return fileBuffer;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -185,7 +185,7 @@ export class LocalStorage implements StorageInterface {
       await this.saveMetadata(allMetadata);
 
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -203,7 +203,7 @@ export class LocalStorage implements StorageInterface {
       // Check if the physical file exists
       await fs.access(metadata.filePath);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -215,7 +215,7 @@ export class LocalStorage implements StorageInterface {
     try {
       const allMetadata = await this.loadMetadata();
       return allMetadata[fileId] || null;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -227,7 +227,7 @@ export class LocalStorage implements StorageInterface {
     try {
       const allMetadata = await this.loadMetadata();
       return Object.values(allMetadata);
-    } catch (error) {
+    } catch {
       return [];
     }
   }

@@ -16,7 +16,7 @@ describe('LocalStorage', () => {
     // Clean up test files
     try {
       await fs.rm(testUploadsDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors
     }
   });

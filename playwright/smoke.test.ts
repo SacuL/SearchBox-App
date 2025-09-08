@@ -1,22 +1,36 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.setTimeout(35e3);
 
-test('go to /', async ({ page }) => {
+test('loads the SearchBox homepage', async ({ page }) => {
   await page.goto('/');
 
-  await page.waitForSelector(`text=Starter`);
+  // Check that the main heading is visible
+  await expect(page.locator('h1')).toContainText('SearchBox App');
 });
 
-test('add a post', async ({ page }) => {
-  const nonce = `${Math.random()}`;
-
+test('file upload interface is functional', async ({ page }) => {
   await page.goto('/');
-  await page.fill(`[name=title]`, nonce);
-  await page.fill(`[name=text]`, nonce);
-  await page.click(`form [type=submit]`);
-  await page.waitForLoadState('networkidle');
-  await page.reload();
 
-  await page.waitForSelector(`text="${nonce}"`);
+  // Check that the file input is present (it's hidden but exists)
+  const fileInput = page.locator('input[type="file"]');
+  await expect(fileInput).toBeAttached();
+
+  // Check that the upload button is present and clickable
+  const uploadButton = page.locator('button:has-text("Select Files")');
+  await expect(uploadButton).toBeVisible();
+  await expect(uploadButton).toBeEnabled();
+
+  // Check that the drag and drop area is present
+  const dragDropArea = page.locator('text=Drag and drop files here');
+  await expect(dragDropArea).toBeVisible();
+
+  // Check that file type restrictions are mentioned
+  await expect(page.locator('text=Max size per file: 50.0MB')).toBeVisible();
+
+  // Check that the file input has the correct accept attribute
+  await expect(fileInput).toHaveAttribute('accept', '.txt,.md,.docx,.pdf');
+
+  // Check that the file input allows multiple files
+  await expect(fileInput).toHaveAttribute('multiple');
 });

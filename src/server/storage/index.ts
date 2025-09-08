@@ -21,7 +21,7 @@ export class StorageFactory {
           await this.instance.initialize();
           break;
         default:
-          throw new Error(`Unsupported storage type: ${type}`);
+          throw new Error(`Unsupported storage type: ${String(type)}`);
       }
     }
     return this.instance;

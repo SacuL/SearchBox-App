@@ -1,5 +1,5 @@
 {
-  "name": "examples-trpc-next-prisma-starter",
+  "name": "searchbox-app",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -7,7 +7,7 @@
     "start": "next start",
     "lint": "eslint --cache src",
     "lint-fix": "pnpm lint --fix",
-    "test-unit": "vitest",
+    "test-unit": "vitest --run",
     "test-e2e": "playwright test",
     "test-start": "run-s test-unit test-e2e",
     "typecheck": "tsc --noEmit"
