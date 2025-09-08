@@ -65,3 +65,64 @@ export function isTextExtractionSupported(fileName: string): boolean {
   const extension = getFileExtension(fileName);
   return ['txt', 'md', 'pdf'].includes(extension);
 }
+
+export interface ExtractResult {
+  success: boolean;
+  content?: string;
+  shouldIndex: boolean;
+  error?: string;
+}
+
+/**
+ * Extract text content from a file
+ * @param fileBuffer - The file buffer to extract text from
+ * @param fileName - The name of the file
+ * @param mimeType - The MIME type of the file
+ * @returns Promise<ExtractResult> - The result of the extraction operation
+ */
+export async function extractFileContent(
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string,
+): Promise<ExtractResult> {
+  try {
+    const shouldIndex = shouldIndexFile(fileName, mimeType);
+
+    if (!shouldIndex) {
+      console.log('⏭️ File type not supported for text extraction, skipping');
+      return {
+        success: true,
+        shouldIndex: false,
+      };
+    }
+
+    console.log('🔍 Starting text extraction process...');
+    console.log(`📄 Extracting text content from ${fileName}...`);
+
+    const content = await extractTextContent(fileBuffer, fileName);
+
+    if (!content || content.trim().length === 0) {
+      console.log('⚠️ No content extracted or empty content');
+      return {
+        success: true,
+        content: '',
+        shouldIndex: true,
+      };
+    }
+
+    console.log(`📄 Text extraction complete: ${content.length} characters extracted`);
+
+    return {
+      success: true,
+      content,
+      shouldIndex: true,
+    };
+  } catch (error) {
+    console.error('❌ Text extraction failed:', error);
+    return {
+      success: false,
+      shouldIndex: shouldIndexFile(fileName, mimeType),
+      error: error instanceof Error ? error.message : 'Unknown extraction error',
+    };
+  }
+}

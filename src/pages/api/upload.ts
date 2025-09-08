@@ -1,9 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import multer from 'multer';
-import { StorageFactory } from '../../server/storage';
-import { getSearchService } from '../../server/search';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '../../server/routers/upload';
-import { extractTextContent, shouldIndexFile } from '../../utils/textExtraction';
+import { storeFile, extractFileContent, indexFileContent } from '../../server/business';
 
 // Extend NextApiRequest to include file property
 interface NextApiRequestWithFile extends NextApiRequest {
@@ -77,89 +75,56 @@ export default async function handler(req: NextApiRequestWithFile, res: NextApiR
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Get storage instance
-    console.log('💾 Getting storage instance...');
-    const storage = await StorageFactory.getStorage('local', { uploadsDir: 'uploads' });
+    // Step 1: Store the file
+    console.log('📁 Step 1: Storing file...');
+    const storeResult = await storeFile(file.buffer, file.originalname, file.mimetype);
 
-    // Save file to storage
-    console.log('💾 Saving file to storage...');
-    const result = await storage.saveFile(file.buffer, file.originalname, file.mimetype, {
-      generateUniqueName: true,
-      preserveOriginalName: true,
-      createSubdirectories: true,
-    });
-
-    console.log('💾 Storage result:', {
-      success: result.success,
-      fileId: result.fileId,
-      error: result.error,
-    });
-
-    if (!result.success) {
-      console.log('❌ Storage save failed:', result.error);
+    if (!storeResult.success) {
+      console.log('❌ File storage failed:', storeResult.error);
       return res.status(500).json({
-        error: result.error || 'Failed to save file',
+        error: storeResult.error || 'Failed to store file',
       });
     }
 
-    // Get file metadata
-    console.log('📋 Getting file metadata...');
-    const metadata = await storage.getFileMetadata(result.fileId!);
-    console.log(
-      '📋 Metadata retrieved:',
-      metadata
-        ? {
-            id: metadata.id,
-            fileName: metadata.fileName,
-            fileSize: metadata.fileSize,
-          }
-        : 'No metadata',
-    );
+    // Step 2: Extract text content
+    console.log('📄 Step 2: Extracting text content...');
+    const extractResult = await extractFileContent(file.buffer, file.originalname, file.mimetype);
 
-    // Index file content if it's a TXT, MD, or PDF file
-    if (metadata && shouldIndexFile(file.originalname, file.mimetype)) {
-      console.log('🔍 Starting text extraction and indexing process...');
-      try {
-        const searchService = getSearchService();
-        console.log(`📄 Extracting text content from ${file.originalname}...`);
-        const content = await extractTextContent(file.buffer, file.originalname);
+    if (!extractResult.success) {
+      console.log('⚠️ Text extraction failed:', extractResult.error);
+      // Continue with upload even if extraction fails
+    }
 
-        if (content && content.trim().length > 0) {
-          const searchableDocument = {
-            id: metadata.id,
-            fileName: metadata.fileName,
-            originalName: metadata.originalName,
-            fileExtension: metadata.fileExtension,
-            mimeType: metadata.mimeType,
-            uploadDate: metadata.uploadDate,
-            fileSize: metadata.fileSize,
-          };
+    // Step 3: Index the content (if extraction was successful and content exists)
+    let indexed = false;
+    if (
+      extractResult.success &&
+      extractResult.shouldIndex &&
+      extractResult.content &&
+      storeResult.metadata
+    ) {
+      console.log('🔍 Step 3: Indexing content for search...');
+      const indexResult = await indexFileContent(storeResult.metadata, extractResult.content);
 
-          console.log(`🔍 Adding document to search index (${content.length} characters)...`);
-          searchService.addDocument(searchableDocument, content);
-          console.log('✅ File indexed successfully');
-        } else {
-          console.log('⚠️ No content extracted or empty content, skipping indexing');
-        }
-      } catch (error) {
-        console.error('❌ Failed to extract text or index file:', error);
-        // Don't fail the upload if indexing fails
+      if (indexResult.success) {
+        indexed = indexResult.indexed;
+      } else {
+        console.log('⚠️ Search indexing failed:', indexResult.error);
+        // Continue with upload even if indexing fails
       }
-    } else {
-      console.log('⏭️ File type not supported for indexing, skipping');
     }
 
     console.log('✅ Upload successful!');
     return res.status(200).json({
       success: true,
       data: {
-        fileId: result.fileId,
-        fileName: metadata?.fileName,
-        originalName: metadata?.originalName,
-        fileSize: metadata?.fileSize,
-        mimeType: metadata?.mimeType,
-        uploadDate: metadata?.uploadDate,
-        indexed: shouldIndexFile(file.originalname, file.mimetype),
+        fileId: storeResult.fileId,
+        fileName: storeResult.metadata?.fileName,
+        originalName: storeResult.metadata?.originalName,
+        fileSize: storeResult.metadata?.fileSize,
+        mimeType: storeResult.metadata?.mimeType,
+        uploadDate: storeResult.metadata?.uploadDate,
+        indexed,
         message: 'File uploaded successfully',
       },
     });
