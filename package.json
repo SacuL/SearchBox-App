@@ -26,6 +26,7 @@
     "@types/multer": "^2.0.0",
     "@types/uuid": "^10.0.0",
     "clsx": "^2.0.0",
+    "flexsearch": "^0.8.212",
     "lucide-react": "^0.542.0",
     "multer": "^2.0.2",
     "next": "^15.3.1",

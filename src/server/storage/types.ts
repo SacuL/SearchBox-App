@@ -8,6 +8,7 @@ export interface FileMetadata {
   uploadDate: Date;
   filePath: string;
   checksum?: string;
+  content?: string; // Extracted file content for search indexing
 }
 
 export interface StorageResult {
