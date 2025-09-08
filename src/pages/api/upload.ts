@@ -3,6 +3,7 @@ import multer from 'multer';
 import { StorageFactory } from '../../server/storage';
 import { getSearchService } from '../../server/search';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '../../server/routers/upload';
+import { extractTextContent, shouldIndexFile } from '../../utils/textExtraction';
 
 // Extend NextApiRequest to include file property
 interface NextApiRequestWithFile extends NextApiRequest {
@@ -28,25 +29,6 @@ const upload = multer({
     cb(null, true);
   },
 });
-
-// Function to extract content from text-based files
-function extractTextContent(fileBuffer: Buffer, fileName: string): string {
-  try {
-    // Convert buffer to string (assuming UTF-8 encoding)
-    const content = fileBuffer.toString('utf-8');
-    console.log(`📄 Extracted content from ${fileName}: ${content.length} characters`);
-    return content;
-  } catch (error) {
-    console.error(`❌ Failed to extract content from ${fileName}:`, error);
-    return '';
-  }
-}
-
-// Function to check if file should be indexed
-function shouldIndexFile(fileName: string, _mimeType: string): boolean {
-  const fileExtension = fileName.split('.').pop()?.toLowerCase();
-  return fileExtension === 'txt' || fileExtension === 'md';
-}
 
 // Disable body parsing for multer
 export const config = {
@@ -134,14 +116,15 @@ export default async function handler(req: NextApiRequestWithFile, res: NextApiR
         : 'No metadata',
     );
 
-    // Index file content if it's a TXT or MD file
+    // Index file content if it's a TXT, MD, or PDF file
     if (metadata && shouldIndexFile(file.originalname, file.mimetype)) {
-      console.log('🔍 Indexing file content...');
+      console.log('🔍 Starting text extraction and indexing process...');
       try {
         const searchService = getSearchService();
-        const content = extractTextContent(file.buffer, file.originalname);
+        console.log(`📄 Extracting text content from ${file.originalname}...`);
+        const content = await extractTextContent(file.buffer, file.originalname);
 
-        if (content) {
+        if (content && content.trim().length > 0) {
           const searchableDocument = {
             id: metadata.id,
             fileName: metadata.fileName,
@@ -152,13 +135,14 @@ export default async function handler(req: NextApiRequestWithFile, res: NextApiR
             fileSize: metadata.fileSize,
           };
 
+          console.log(`🔍 Adding document to search index (${content.length} characters)...`);
           searchService.addDocument(searchableDocument, content);
           console.log('✅ File indexed successfully');
         } else {
-          console.log('⚠️ No content extracted, skipping indexing');
+          console.log('⚠️ No content extracted or empty content, skipping indexing');
         }
       } catch (error) {
-        console.error('❌ Failed to index file:', error);
+        console.error('❌ Failed to extract text or index file:', error);
         // Don't fail the upload if indexing fails
       }
     } else {

@@ -30,6 +30,7 @@
     "lucide-react": "^0.542.0",
     "multer": "^2.0.2",
     "next": "^15.3.1",
+    "pdf-parse": "^1.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "superjson": "^1.12.4",
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@playwright/test": "^1.50.1",
     "@types/node": "^22.13.5",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19.1.0",
     "autoprefixer": "^10.4.7",
     "dotenv": "^16.0.1",
