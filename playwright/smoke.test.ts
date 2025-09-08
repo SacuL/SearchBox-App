@@ -29,7 +29,7 @@ test('file upload interface is functional', async ({ page }) => {
   await expect(page.locator('text=Max size per file: 50.0MB')).toBeVisible();
 
   // Check that the file input has the correct accept attribute
-  await expect(fileInput).toHaveAttribute('accept', '.txt,.md,.docx,.pdf');
+  await expect(fileInput).toHaveAttribute('accept', '.txt,.md,.pdf,.docx');
 
   // Check that the file input allows multiple files
   await expect(fileInput).toHaveAttribute('multiple');
