@@ -43,3 +43,6 @@ playwright/test-results
 
 # uploaded files
 /uploads
+
+# eslint cache
+.eslintcache
