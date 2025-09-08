@@ -33,9 +33,7 @@ export const FileUploadSection: React.FC = () => {
 
     files.forEach((file) => {
       // Check if a file with the same name already exists
-      const isDuplicate = selectedFiles.some(
-        (existingFile) => existingFile.name === file.name,
-      );
+      const isDuplicate = selectedFiles.some((existingFile) => existingFile.name === file.name);
 
       // Silently ignore duplicates
       if (!isDuplicate) {
@@ -124,9 +122,7 @@ export const FileUploadSection: React.FC = () => {
     for (const queueItem of queue) {
       // Update status to uploading
       setUploadQueue((prev) =>
-        prev.map((item) =>
-          item.id === queueItem.id ? { ...item, status: 'uploading' } : item,
-        ),
+        prev.map((item) => (item.id === queueItem.id ? { ...item, status: 'uploading' } : item)),
       );
 
       try {
@@ -141,9 +137,7 @@ export const FileUploadSection: React.FC = () => {
           // Mark as completed
           setUploadQueue((prev) =>
             prev.map((item) =>
-              item.id === queueItem.id
-                ? { ...item, status: 'completed', progress: 100 }
-                : item,
+              item.id === queueItem.id ? { ...item, status: 'completed', progress: 100 } : item,
             ),
           );
         } else {
@@ -168,8 +162,7 @@ export const FileUploadSection: React.FC = () => {
               ? {
                   ...item,
                   status: 'failed',
-                  error:
-                    error instanceof Error ? error.message : 'Upload failed',
+                  error: error instanceof Error ? error.message : 'Upload failed',
                 }
               : item,
           ),
@@ -184,12 +177,115 @@ export const FileUploadSection: React.FC = () => {
     // Selected files and validation errors are already cleared when upload started
   };
 
+  // Function to format error messages into user-friendly text
+  const formatErrorMessage = (error: string): string => {
+    // Handle common error patterns and convert them to user-friendly messages
+    if (error.includes('File type not supported')) {
+      return 'File type is not supported. Please use .txt, .md, .docx, or .pdf files.';
+    }
+    if (error.includes('File size')) {
+      return 'File is too large. Maximum size is 50MB.';
+    }
+    if (error.includes('File extension not supported')) {
+      return 'File extension is not supported. Please use .txt, .md, .docx, or .pdf files.';
+    }
+    if (error.includes('File name is required')) {
+      return 'File name is required.';
+    }
+    if (error.includes('File validation failed')) {
+      return 'File validation failed. Please check the file type and size.';
+    }
+    if (error.includes('Upload failed')) {
+      return 'Upload failed. Please try again.';
+    }
+    if (error.includes('Unknown error occurred')) {
+      return 'An unexpected error occurred. Please try again.';
+    }
+
+    // For any other errors, provide a generic message
+    return 'Upload failed. Please try again.';
+  };
+
+  // Function to retry a failed upload
+  const handleRetryUpload = async (uploadId: string) => {
+    const failedItem = uploadQueue.find((item) => item.id === uploadId);
+    if (!failedItem) return;
+
+    // Reset the item to pending status
+    setUploadQueue((prev) =>
+      prev.map((item) =>
+        item.id === uploadId ? { ...item, status: 'pending', progress: 0, error: undefined } : item,
+      ),
+    );
+
+    // Start processing this single upload
+    setIsUploading(true);
+    await processSingleUpload(failedItem);
+    setIsUploading(false);
+  };
+
+  // Function to process a single upload (for retry functionality)
+  const processSingleUpload = async (queueItem: {
+    id: string;
+    file: File;
+    status: 'pending' | 'uploading' | 'completed' | 'failed';
+    progress: number;
+    error?: string;
+  }) => {
+    // Update status to uploading
+    setUploadQueue((prev) =>
+      prev.map((item) => (item.id === queueItem.id ? { ...item, status: 'uploading' } : item)),
+    );
+
+    try {
+      // Call the actual tRPC upload route
+      const result = await uploadFileMutation.mutateAsync({
+        fileName: queueItem.file.name,
+        fileSize: queueItem.file.size,
+        fileType: queueItem.file.type || 'unknown',
+      });
+
+      if (result.success) {
+        // Mark as completed
+        setUploadQueue((prev) =>
+          prev.map((item) =>
+            item.id === queueItem.id ? { ...item, status: 'completed', progress: 100 } : item,
+          ),
+        );
+      } else {
+        // Mark as failed
+        setUploadQueue((prev) =>
+          prev.map((item) =>
+            item.id === queueItem.id
+              ? {
+                  ...item,
+                  status: 'failed',
+                  error: result.error || 'Upload failed',
+                }
+              : item,
+          ),
+        );
+      }
+    } catch (error) {
+      // Mark as failed
+      setUploadQueue((prev) =>
+        prev.map((item) =>
+          item.id === queueItem.id
+            ? {
+                ...item,
+                status: 'failed',
+                error: error instanceof Error ? error.message : 'Upload failed',
+              }
+            : item,
+        ),
+      );
+    }
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-          File Upload
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">File Upload</h2>
 
         <FileUpload
           onFilesSelected={handleFilesSelected}
@@ -205,18 +301,14 @@ export const FileUploadSection: React.FC = () => {
           }`}
           style={{
             minHeight:
-              validationErrors.fileTypeErrors.length > 0 && showFileSection
-                ? 'auto'
-                : '0px',
+              validationErrors.fileTypeErrors.length > 0 && showFileSection ? 'auto' : '0px',
             overflow: 'hidden',
           }}
         >
           {validationErrors.fileTypeErrors.length > 0 && (
             <div className="mt-4 p-3 bg-orange-100 border border-orange-300 rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-orange-700 font-medium">
-                  ⚠️ Unsupported file types
-                </p>
+                <p className="text-sm text-orange-700 font-medium">⚠️ Unsupported file types</p>
                 <button
                   onClick={() =>
                     setValidationErrors((prev) => ({
@@ -227,12 +319,7 @@ export const FileUploadSection: React.FC = () => {
                   className="text-orange-500 hover:text-orange-700 p-1 rounded-full hover:bg-orange-200 transition-colors duration-200"
                   title="Close error message"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -265,32 +352,20 @@ export const FileUploadSection: React.FC = () => {
               : 'opacity-0 transform -translate-y-4 pointer-events-none'
           }`}
           style={{
-            minHeight:
-              validationErrors.sizeErrors.length > 0 && showFileSection
-                ? 'auto'
-                : '0px',
+            minHeight: validationErrors.sizeErrors.length > 0 && showFileSection ? 'auto' : '0px',
             overflow: 'hidden',
           }}
         >
           {validationErrors.sizeErrors.length > 0 && (
             <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-red-700 font-medium">
-                  ⚠️ Files too large
-                </p>
+                <p className="text-sm text-red-700 font-medium">⚠️ Files too large</p>
                 <button
-                  onClick={() =>
-                    setValidationErrors((prev) => ({ ...prev, sizeErrors: [] }))
-                  }
+                  onClick={() => setValidationErrors((prev) => ({ ...prev, sizeErrors: [] }))}
                   className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-200 transition-colors duration-200"
                   title="Close error message"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -307,9 +382,7 @@ export const FileUploadSection: React.FC = () => {
                     • {name} - {size}MB
                   </div>
                 ))}
-                <div className="mt-3 pt-2 border-t border-red-200">
-                  Maximum size per file: 50MB
-                </div>
+                <div className="mt-3 pt-2 border-t border-red-200">Maximum size per file: 50MB</div>
               </div>
             </div>
           )}
@@ -323,14 +396,9 @@ export const FileUploadSection: React.FC = () => {
             </h3>
             <div className="space-y-3">
               {uploadQueue.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-gray-50 border border-gray-200 rounded-lg p-4"
-                >
+                <div key={item.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-900">
-                      {item.file.name}
-                    </span>
+                    <span className="text-sm font-medium text-gray-900">{item.file.name}</span>
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${
                         item.status === 'pending'
@@ -362,9 +430,15 @@ export const FileUploadSection: React.FC = () => {
                   )}
 
                   {item.status === 'failed' && item.error && (
-                    <p className="text-xs text-red-600 mt-1">
-                      Error: {item.error}
-                    </p>
+                    <div className="mt-2">
+                      <p className="text-xs text-red-600 mb-2">{formatErrorMessage(item.error)}</p>
+                      <button
+                        onClick={() => handleRetryUpload(item.id)}
+                        className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors duration-200"
+                      >
+                        Retry
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -380,8 +454,7 @@ export const FileUploadSection: React.FC = () => {
               : 'opacity-0 transform -translate-y-4 pointer-events-none'
           }`}
           style={{
-            minHeight:
-              selectedFiles.length > 0 && showFileSection ? 'auto' : '0px',
+            minHeight: selectedFiles.length > 0 && showFileSection ? 'auto' : '0px',
             overflow: 'hidden',
           }}
         >
@@ -398,8 +471,7 @@ export const FileUploadSection: React.FC = () => {
               : 'opacity-0 transform -translate-y-4 pointer-events-none'
           }`}
           style={{
-            minHeight:
-              selectedFiles.length > 0 && showFileSection ? 'auto' : '0px',
+            minHeight: selectedFiles.length > 0 && showFileSection ? 'auto' : '0px',
             overflow: 'hidden',
           }}
         >
