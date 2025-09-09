@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { trpc } from '~/utils/trpc';
 
 interface LastUploadedFilesProps {
@@ -50,7 +51,15 @@ export const LastUploadedFiles: React.FC<LastUploadedFilesProps> = ({ onFileClic
           <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Recent Files</h2>
           <div className="text-center py-8 text-gray-500">
             <p>No files uploaded yet</p>
-            <p className="text-sm mt-2">Upload some files to see them here</p>
+            <p className="text-sm mt-2">
+              <Link
+                href="/upload"
+                className="text-blue-600 hover:text-blue-800 underline transition-colors duration-200"
+              >
+                Upload some files
+              </Link>{' '}
+              to see them here
+            </p>
           </div>
         </div>
       </div>

@@ -22,7 +22,7 @@ export async function storeFile(
 ): Promise<StoreResult> {
   try {
     console.log('💾 Getting storage instance...');
-    const storage = await StorageFactory.getStorage('local', { uploadsDir: 'uploads' });
+    const storage = await StorageFactory.getStorage('memory');
 
     console.log('💾 Saving file to storage...');
     const result = await storage.saveFile(fileBuffer, fileName, mimeType, {

@@ -11,6 +11,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Reset hasSearched when component mounts (when user navigates to search page)
+  React.useEffect(() => {
+    setHasSearched(false);
+  }, []);
+
   // Check if there are any documents in the index
   const indexStats = trpc.search.getIndexStats.useQuery();
 

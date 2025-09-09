@@ -14,8 +14,8 @@ export async function initializeStorage(): Promise<void> {
 
   try {
     console.log('🔧 Initializing storage system...');
-    await StorageFactory.getStorage('local', { uploadsDir: 'uploads' });
-    console.log('✅ Storage initialized successfully');
+    await StorageFactory.getStorage('memory');
+    console.log('✅ Memory storage initialized successfully');
     isInitialized = true;
   } catch (error) {
     console.error('❌ Failed to initialize storage:', error);
