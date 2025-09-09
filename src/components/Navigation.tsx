@@ -1,13 +1,9 @@
 import Link from 'next/link';
-import { useRouter } from 'next/router';
-
 interface NavigationProps {
   currentPage?: 'home' | 'upload' | 'search';
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ currentPage }) => {
-  const router = useRouter();
-
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="container mx-auto px-4">

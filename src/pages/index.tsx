@@ -8,9 +8,12 @@ const IndexPage: NextPageWithLayout = () => {
       <Navigation currentPage="home" />
       <div className="flex-1 py-8">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold text-center text-gray-900 mb-8">SearchBox App</h1>
+          <h1 className="text-4xl font-bold text-center text-gray-900 mb-8">
+            File Management made easy
+          </h1>
           <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-            Upload and search through your documents with ease. Choose what you'd like to do:
+            Upload, organize, and search through your documents effortlessly. Choose what you'd like
+            to do:
           </p>
 
           {/* Navigation Cards */}

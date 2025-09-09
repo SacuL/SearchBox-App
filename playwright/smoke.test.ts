@@ -6,7 +6,7 @@ test('loads the SearchBox homepage', async ({ page }) => {
   await page.goto('/');
 
   // Check that the main heading is visible
-  await expect(page.locator('h1')).toContainText('SearchBox App');
+  await expect(page.locator('h1')).toContainText('File Management made easy');
 });
 
 test('file upload interface is functional', async ({ page }) => {
@@ -39,7 +39,7 @@ test('homepage navigation works correctly', async ({ page }) => {
   await page.goto('/');
 
   // Check that the main heading is visible
-  await expect(page.locator('h1')).toContainText('SearchBox App');
+  await expect(page.locator('h1')).toContainText('File Management made easy');
 
   // Check that both navigation cards are present
   await expect(page.locator('text=Upload Documents')).toBeVisible();
