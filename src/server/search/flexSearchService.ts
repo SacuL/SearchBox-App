@@ -74,9 +74,9 @@ export class FlexSearchService {
         };
       }
 
-      // Perform the search
+      // Perform the search (get all results first, then apply pagination)#
+      //TODO: Handle pagination correctly
       const searchResults = this.index.search(query, {
-        limit: options.limit || 50,
         suggest: false,
       }) as string[];
 
