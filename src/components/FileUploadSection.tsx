@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileUpload } from './FileUpload';
 import { FileList } from './FileList';
+import { trpc } from '~/utils/trpc';
 
 export const FileUploadSection: React.FC = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -8,6 +9,9 @@ export const FileUploadSection: React.FC = () => {
     fileTypeErrors: string[];
     sizeErrors: { name: string; size: number }[];
   }>({ fileTypeErrors: [], sizeErrors: [] });
+
+  // Get tRPC utils for invalidating queries
+  const utils = trpc.useUtils();
 
   // Upload queue state
   const [uploadQueue, setUploadQueue] = useState<
@@ -139,6 +143,9 @@ export const FileUploadSection: React.FC = () => {
               item.id === queueItem.id ? { ...item, status: 'completed', progress: 100 } : item,
             ),
           );
+
+          // Invalidate search index stats to trigger SearchBar to appear
+          utils.search.getIndexStats.invalidate();
         } else {
           // Mark as failed
           setUploadQueue((prev) =>
@@ -254,6 +261,9 @@ export const FileUploadSection: React.FC = () => {
             item.id === queueItem.id ? { ...item, status: 'completed', progress: 100 } : item,
           ),
         );
+
+        // Invalidate search index stats to trigger SearchBar to appear
+        utils.search.getIndexStats.invalidate();
       } else {
         // Mark as failed
         setUploadQueue((prev) =>

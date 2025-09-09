@@ -267,4 +267,42 @@ describe('Search Router', () => {
     });
     expect(searchAfter.data?.results).toHaveLength(0);
   });
+
+  it('should return correct document count for conditional display', async () => {
+    // Start with empty index
+    const statsEmpty = await caller.search.getIndexStats();
+    expect(statsEmpty.success).toBe(true);
+    expect(statsEmpty.data?.documentCount).toBe(0);
+
+    // Add a document
+    const document: SearchableDocument = {
+      id: 'conditional-test-doc',
+      fileName: 'conditional-test.txt',
+      originalName: 'conditional-test.txt',
+      fileExtension: 'txt',
+      mimeType: 'text/plain',
+      uploadDate: new Date(),
+      fileSize: 100,
+    };
+
+    await caller.search.addToIndex({
+      ...document,
+      content: 'Document for conditional display test',
+    });
+
+    // Verify document count increased
+    const statsWithDoc = await caller.search.getIndexStats();
+    expect(statsWithDoc.success).toBe(true);
+    expect(statsWithDoc.data?.documentCount).toBe(1);
+
+    // Remove document
+    await caller.search.removeFromIndex({
+      id: 'conditional-test-doc',
+    });
+
+    // Verify document count is back to 0
+    const statsAfterRemoval = await caller.search.getIndexStats();
+    expect(statsAfterRemoval.success).toBe(true);
+    expect(statsAfterRemoval.data?.documentCount).toBe(0);
+  });
 });

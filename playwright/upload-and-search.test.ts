@@ -56,6 +56,9 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
     // Step 2: Search for content in the uploaded file
     console.log('🔍 Starting search...');
 
+    // Wait for the SearchBar to appear (it only shows when there are documents in the index)
+    await expect(page.locator('h2:has-text("Search Documents")')).toBeVisible({ timeout: 10000 });
+
     // Find the search input
     const searchInput = page.locator('input[placeholder*="search query"]');
     await expect(searchInput).toBeVisible();
@@ -71,15 +74,12 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
     // Wait for search results
     await expect(page.locator('text=Search Results')).toBeVisible();
 
-    // Verify that we found the uploaded file
-    await expect(page.locator(`text=test-document-${timestamp}.txt`)).toBeVisible();
-
-    // Verify the search results show the correct file
-    // Just check that our specific file appears in the search results
-    await expect(page.locator(`text=test-document-${timestamp}.txt`)).toBeVisible();
+    // Verify that we found the uploaded file in search results
+    // Use a more specific selector to avoid strict mode violations
+    await expect(page.locator(`h4:has-text("test-document-${timestamp}.txt")`)).toBeVisible();
 
     // Verify the file extension is shown
-    await expect(page.locator('text=TXT')).toBeVisible();
+    await expect(page.locator('span.bg-blue-100:has-text(".TXT")')).toBeVisible();
 
     console.log('✅ Search completed successfully');
 
@@ -97,7 +97,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
     await expect(page.locator('text=Search Results')).toBeVisible();
 
     // Verify we still find the file
-    await expect(page.locator(`text=test-document-${timestamp}.txt`)).toBeVisible();
+    await expect(page.locator(`h4:has-text("test-document-${timestamp}.txt")`)).toBeVisible();
 
     console.log('✅ Second search completed successfully');
 
@@ -198,6 +198,9 @@ Search term: MULTI_FILE_TEST_3_${timestamp}`,
 
     // Test search that should find multiple files
     console.log('🔍 Testing search across multiple files...');
+
+    // Wait for the SearchBar to appear (it only shows when there are documents in the index)
+    await expect(page.locator('h2:has-text("Search Documents")')).toBeVisible({ timeout: 10000 });
 
     const searchInput = page.locator('input[placeholder*="search query"]');
     await expect(searchInput).toBeVisible();

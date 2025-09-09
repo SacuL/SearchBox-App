@@ -6,6 +6,9 @@ export const SearchBar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
+  // Check if there are any documents in the index
+  const indexStats = trpc.search.getIndexStats.useQuery();
+
   // Use tRPC to search - this is a query that runs when searchQuery changes
   const searchResult = trpc.search.search.useQuery(
     {
@@ -39,10 +42,26 @@ export const SearchBar: React.FC = () => {
     setQuery(e.target.value);
   };
 
+  // Don't render if there are no documents in the index or while loading
+  if (
+    indexStats.isLoading ||
+    (indexStats.data?.success && indexStats.data.data?.documentCount === 0)
+  ) {
+    return null;
+  }
+
   return (
     <div className="w-full max-w-2xl mx-auto mb-8">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Search Documents</h2>
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Search Documents</h2>
+          {indexStats.data?.success && indexStats.data.data && (
+            <p className="text-sm text-gray-600">
+              {indexStats.data.data.documentCount}{' '}
+              {indexStats.data.data.documentCount === 1 ? 'document' : 'documents'} indexed
+            </p>
+          )}
+        </div>
 
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="flex space-x-2">
