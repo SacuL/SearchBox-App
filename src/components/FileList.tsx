@@ -1,4 +1,5 @@
 import { FileText, File } from 'lucide-react';
+import { getFileTypeIconColor, getFileTypeDisplayName } from '~/utils/fileTypeColors';
 
 interface FileListProps {
   files: File[];
@@ -15,45 +16,20 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemoveFile }) => {
   };
 
   const getFileIcon = (file: File) => {
-    const extension = file.name.split('.').pop()?.toLowerCase();
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    const iconColor = getFileTypeIconColor(`.${extension}`);
 
-    switch (extension) {
-      case 'pdf':
-        return <FileText className="w-6 h-6 text-red-600" />;
-      case 'docx':
-        return <FileText className="w-6 h-6 text-blue-700" />;
-      case 'txt':
-        return <FileText className="w-6 h-6 text-gray-600" />;
-      case 'md':
-        return <FileText className="w-6 h-6 text-emerald-600" />;
-      default:
-        return <File className="w-6 h-6 text-gray-500" />;
-    }
+    return <FileText className={`w-6 h-6 ${iconColor}`} />;
   };
 
   const getFileTypeDisplay = (file: File): string => {
-    // Simple extension-based approach for supported file types
-    const extension = file.name.split('.').pop()?.toLowerCase();
-
-    switch (extension) {
-      case 'txt':
-        return 'Text';
-      case 'md':
-        return 'Markdown';
-      case 'docx':
-        return 'DOCX';
-      case 'pdf':
-        return 'PDF';
-      default:
-        return extension?.toUpperCase() || '';
-    }
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    return getFileTypeDisplayName(`.${extension}`);
   };
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-gray-700">
-        Selected Files ({files.length})
-      </h3>
+      <h3 className="text-lg font-semibold text-gray-700">Selected Files ({files.length})</h3>
 
       <div className="space-y-2">
         {files.map((file, index) => (
@@ -64,9 +40,7 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemoveFile }) => {
             <div className="flex items-center space-x-3">
               {getFileIcon(file)}
               <div className="flex flex-col">
-                <span className="font-medium text-gray-900 truncate max-w-xs">
-                  {file.name}
-                </span>
+                <span className="font-medium text-gray-900 truncate max-w-xs">{file.name}</span>
                 <span className="text-sm text-gray-500">
                   {formatFileSize(file.size)}
                   {getFileTypeDisplay(file) && ` • ${getFileTypeDisplay(file)}`}
@@ -79,12 +53,7 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemoveFile }) => {
               className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors duration-200"
               title="Remove file"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

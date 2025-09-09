@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { trpc } from '~/utils/trpc';
+import { getFileTypeColors, getFileTypeDisplayName } from '~/utils/fileTypeColors';
 
 interface SearchBarProps {
   onSearchPerformed?: () => void;
@@ -136,8 +137,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium text-gray-900">{result.originalName}</h4>
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                            {result.fileExtension.toUpperCase()}
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${getFileTypeColors(result.fileExtension).bg} ${getFileTypeColors(result.fileExtension).text}`}
+                          >
+                            {getFileTypeDisplayName(result.fileExtension)}
                           </span>
                         </div>
                         <p className="text-sm text-gray-500">
