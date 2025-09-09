@@ -1,8 +1,18 @@
 import type { NextPageWithLayout } from './_app';
+import { useState } from 'react';
 import { SearchBar } from '../components/SearchBar';
+import { LastUploadedFiles } from '../components/LastUploadedFiles';
 import { Navigation } from '../components/Navigation';
 
 const SearchPage: NextPageWithLayout = () => {
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const handleFileClick = (fileId: string, fileName: string) => {
+    // This could be used to pre-fill the search with the file name
+    // For now, we'll just trigger a search for the file name
+    console.log('File clicked:', fileName);
+  };
+
   return (
     <div className="flex flex-col bg-gray-100 min-h-screen">
       <Navigation currentPage="search" />
@@ -15,7 +25,10 @@ const SearchPage: NextPageWithLayout = () => {
           </p>
 
           {/* Search Section */}
-          <SearchBar />
+          <SearchBar onSearchPerformed={() => setHasSearched(true)} />
+
+          {/* Show recent files only when no search has been performed */}
+          {!hasSearched && <LastUploadedFiles onFileClick={handleFileClick} />}
         </div>
       </div>
     </div>

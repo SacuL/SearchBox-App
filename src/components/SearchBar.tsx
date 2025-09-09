@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { trpc } from '~/utils/trpc';
 
-export const SearchBar: React.FC = () => {
+interface SearchBarProps {
+  onSearchPerformed?: () => void;
+}
+
+export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
   const [query, setQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Check if there are any documents in the index
   const indexStats = trpc.search.getIndexStats.useQuery();
@@ -36,6 +41,8 @@ export const SearchBar: React.FC = () => {
 
     setIsSearching(true);
     setSearchQuery(query.trim());
+    setHasSearched(true);
+    onSearchPerformed?.();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,17 +74,19 @@ export const SearchBar: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto mb-8">
+    <div className={`w-full mx-auto mb-8 ${hasSearched ? 'max-w-2xl' : 'max-w-4xl'}`}>
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Search Documents</h2>
-          {indexStats.data?.success && indexStats.data.data && (
-            <p className="text-sm text-gray-600">
-              {indexStats.data.data.documentCount}{' '}
-              {indexStats.data.data.documentCount === 1 ? 'document' : 'documents'} indexed
-            </p>
-          )}
-        </div>
+        {!hasSearched && (
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Search Documents</h2>
+            {indexStats.data?.success && indexStats.data.data && (
+              <p className="text-sm text-gray-600">
+                {indexStats.data.data.documentCount}{' '}
+                {indexStats.data.data.documentCount === 1 ? 'document' : 'documents'} indexed
+              </p>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="flex space-x-2">
