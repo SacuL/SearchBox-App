@@ -10,7 +10,7 @@ test('loads the SearchBox homepage', async ({ page }) => {
 });
 
 test('file upload interface is functional', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/upload');
 
   // Check that the file input is present (it's hidden but exists)
   const fileInput = page.locator('input[type="file"]');
@@ -33,4 +33,26 @@ test('file upload interface is functional', async ({ page }) => {
 
   // Check that the file input allows multiple files
   await expect(fileInput).toHaveAttribute('multiple');
+});
+
+test('homepage navigation works correctly', async ({ page }) => {
+  await page.goto('/');
+
+  // Check that the main heading is visible
+  await expect(page.locator('h1')).toContainText('SearchBox App');
+
+  // Check that both navigation cards are present
+  await expect(page.locator('text=Upload Documents')).toBeVisible();
+  await expect(page.locator('text=Search Documents')).toBeVisible();
+
+  // Test navigation to upload page
+  await page.click('text=Start Uploading');
+  await expect(page.locator('h1')).toContainText('Upload Documents');
+
+  // Navigate back to homepage
+  await page.goto('/');
+
+  // Test navigation to search page
+  await page.click('text=Start Searching');
+  await expect(page.locator('h1')).toContainText('Search Documents');
 });
