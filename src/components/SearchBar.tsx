@@ -51,7 +51,7 @@ export const SearchBar: React.FC = () => {
               value={query}
               onChange={handleInputChange}
               placeholder="Enter your search query..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
               disabled={isSearching}
             />
             <button
@@ -71,7 +71,7 @@ export const SearchBar: React.FC = () => {
               Search Results
               {searchResult.data.success && searchResult.data.data && (
                 <span className="text-sm text-gray-500 ml-2">
-                  ({searchResult.data.data.total} results found in {searchResult.data.data.took}ms)
+                  ({searchResult.data.data.total} results found)
                 </span>
               )}
             </h3>
@@ -86,17 +86,15 @@ export const SearchBar: React.FC = () => {
                     >
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-gray-900">{result.fileName}</h4>
+                          <h4 className="font-medium text-gray-900">{result.originalName}</h4>
                           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                             {result.fileExtension.toUpperCase()}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600">Original: {result.originalName}</p>
                         <p className="text-sm text-gray-500">
                           Size: {(result.fileSize / 1024).toFixed(1)} KB | Uploaded:{' '}
                           {new Date(result.uploadDate).toLocaleDateString()}
                         </p>
-                        <p className="text-xs text-gray-400">ID: {result.id}</p>
                       </div>
                     </div>
                   ))
