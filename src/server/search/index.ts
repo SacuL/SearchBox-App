@@ -1,24 +1,30 @@
 import { FlexSearchService } from './flexSearchService';
 
-// Singleton instance of the search service
-let searchServiceInstance: FlexSearchService | null = null;
+// Use global variable to ensure singleton across all contexts
+declare global {
+  var __searchServiceInstance: FlexSearchService | undefined;
+}
 
 /**
  * Get or create the search service instance
  */
 export function getSearchService(): FlexSearchService {
-  if (!searchServiceInstance) {
-    searchServiceInstance = new FlexSearchService();
-    console.log('🔍 FlexSearch service initialized');
+  if (!global.__searchServiceInstance) {
+    global.__searchServiceInstance = new FlexSearchService();
+    console.log('🔍 FlexSearch service initialized - new global instance created');
+  } else {
+    console.log('🔍 FlexSearch service - returning existing global instance');
   }
-  return searchServiceInstance;
+  return global.__searchServiceInstance;
 }
 
 /**
  * Reset the search service instance (useful for testing)
  */
 export function resetSearchService(): void {
-  searchServiceInstance = null;
+  if (global.__searchServiceInstance) {
+    global.__searchServiceInstance = undefined;
+  }
 }
 
 // Export types and classes

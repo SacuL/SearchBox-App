@@ -22,6 +22,8 @@ export class FlexSearchService {
       this.index.add(doc.id, content);
 
       console.log(`🔍 Indexed document: ${doc.fileName} (${doc.id})`);
+      console.log(`🔍 Total documents in index: ${this.documents.size}`);
+      console.log(`🔍 Document IDs: ${Array.from(this.documents.keys()).join(', ')}`);
     } catch (error) {
       console.error(`❌ Failed to index document ${doc.id}:`, error);
     }
@@ -161,9 +163,12 @@ export class FlexSearchService {
    * Get index statistics
    */
   getStats(): { documentCount: number; indexSize: number } {
-    return {
+    const stats = {
       documentCount: this.documents.size,
       indexSize: this.index.length || 0,
     };
+    console.log('🔍 FlexSearchService.getStats() called:', stats);
+    console.log('🔍 Documents in memory:', Array.from(this.documents.keys()));
+    return stats;
   }
 }

@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import multer from 'multer';
 import { storeFile, extractFileContent, indexFileContent } from '../../server/business';
-
+import { getSearchService } from '../../server/search';
 import { SUPPORTED_EXTENSIONS } from '../../server/business/extract/fileTypes';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
@@ -47,6 +47,13 @@ export default async function handler(req: NextApiRequestWithFile, res: NextApiR
   if (req.method !== 'POST') {
     console.log('❌ Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Ensure search service is initialized
+  try {
+    getSearchService();
+  } catch (error) {
+    console.error('❌ Search service initialization failed:', error);
   }
 
   try {

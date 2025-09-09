@@ -18,7 +18,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
   }, []);
 
   // Check if there are any documents in the index
-  const indexStats = trpc.search.getIndexStats.useQuery();
+  const indexStats = trpc.search.getIndexStats.useQuery(undefined, {
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 0, // Always consider data stale
+  });
 
   // Use tRPC to search - this is a query that runs when searchQuery changes
   const searchResult = trpc.search.search.useQuery(
@@ -70,6 +74,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
     link.click();
     document.body.removeChild(link);
   };
+
+  // Debug logging for index stats
+  React.useEffect(() => {
+    console.log('🔍 SearchBar indexStats:', {
+      isLoading: indexStats.isLoading,
+      isError: indexStats.isError,
+      data: indexStats.data,
+      documentCount: indexStats.data?.success ? indexStats.data.data?.documentCount : 'unknown',
+    });
+  }, [indexStats.isLoading, indexStats.isError, indexStats.data]);
 
   // Don't render if there are no documents in the index or while loading
   if (

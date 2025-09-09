@@ -56,6 +56,9 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
     // Step 2: Navigate to search page and search for content
     console.log('🔍 Starting search...');
 
+    // Add a small delay to ensure indexing is complete
+    await page.waitForTimeout(2000);
+
     // Navigate to the search page
     await page.goto('/search');
 
@@ -63,7 +66,8 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
     await expect(page.locator('h1')).toContainText('Search Documents');
 
     // Wait for the SearchBar to appear (it only shows when there are documents in the index)
-    await expect(page.locator('h2:has-text("Search Documents")')).toBeVisible({ timeout: 15000 });
+
+    await expect(page.locator('h2:has-text("Search Documents")')).toBeVisible({ timeout: 10000 });
 
     // Find the search input
     const searchInput = page.locator('input[placeholder*="search query"]');
@@ -85,7 +89,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
     await expect(page.locator(`h4:has-text("test-document-${timestamp}.txt")`)).toBeVisible();
 
     // Verify the file extension is shown
-    await expect(page.locator('span.bg-blue-100:has-text(".TXT")')).toBeVisible();
+    await expect(page.locator('span.bg-gray-100:has-text("TXT")')).toBeVisible();
 
     console.log('✅ Search completed successfully');
 

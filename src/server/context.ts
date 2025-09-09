@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type * as trpcNext from '@trpc/server/adapters/next';
 import { initializeStorage } from './storage/init';
+import { getSearchService } from './search';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface CreateContextOptions {
@@ -17,6 +18,13 @@ export async function createContextInner(_opts: CreateContextOptions) {
     await initializeStorage();
   } catch (error) {
     console.error('Storage initialization failed:', error);
+  }
+
+  // Initialize search service on first context creation
+  try {
+    getSearchService();
+  } catch (error) {
+    console.error('Search service initialization failed:', error);
   }
 
   return {};
