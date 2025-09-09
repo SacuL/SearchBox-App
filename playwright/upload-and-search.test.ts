@@ -118,6 +118,31 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
     await expect(page.locator('text=No results found')).toBeVisible();
 
     console.log('✅ No results search completed successfully');
+
+    // Step 5: Test download functionality
+    console.log('📥 Testing download functionality...');
+
+    // Search for the file again to get the download button
+    await searchInput.clear();
+    await searchInput.fill(`E2E_TEST_SEARCH_TERM_${timestamp}`);
+    await searchButton.click();
+
+    // Wait for search results
+    await expect(page.locator('text=Search Results')).toBeVisible();
+
+    // Verify download button is present
+    const downloadButton = page.locator('button:has-text("Download")');
+    await expect(downloadButton).toBeVisible();
+
+    // Test download by clicking the button and checking for download
+    const downloadPromise = page.waitForEvent('download');
+    await downloadButton.click();
+    const download = await downloadPromise;
+
+    // Verify download properties
+    expect(download.suggestedFilename()).toBe(`test-document-${timestamp}.txt`);
+
+    console.log('✅ Download functionality completed successfully');
   } finally {
     // Clean up the test file
     try {

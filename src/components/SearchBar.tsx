@@ -42,6 +42,22 @@ export const SearchBar: React.FC = () => {
     setQuery(e.target.value);
   };
 
+  const handleDownload = (fileId: string, fileName: string) => {
+    // Create a download link and trigger the download
+    const downloadUrl = `/api/download/${fileId}`;
+
+    // Create a temporary anchor element to trigger download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = fileName;
+    link.target = '_blank';
+
+    // Append to body, click, and remove
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Don't render if there are no documents in the index or while loading
   if (
     indexStats.isLoading ||
@@ -103,7 +119,7 @@ export const SearchBar: React.FC = () => {
                       key={result.id}
                       className="bg-gray-50 border border-gray-200 rounded-lg p-4"
                     >
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium text-gray-900">{result.originalName}</h4>
                           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
@@ -114,6 +130,27 @@ export const SearchBar: React.FC = () => {
                           Size: {(result.fileSize / 1024).toFixed(1)} KB | Uploaded:{' '}
                           {new Date(result.uploadDate).toLocaleDateString()}
                         </p>
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => handleDownload(result.id, result.originalName)}
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                            Download
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
