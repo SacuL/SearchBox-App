@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileUpload } from './FileUpload';
 import { FileList } from './FileList';
+import { Toast } from './Toast';
 import { trpc } from '~/utils/trpc';
 
 export const FileUploadSection: React.FC = () => {
@@ -9,9 +10,6 @@ export const FileUploadSection: React.FC = () => {
     fileTypeErrors: string[];
     sizeErrors: { name: string; size: number }[];
   }>({ fileTypeErrors: [], sizeErrors: [] });
-
-  // Get tRPC utils for invalidating queries
-  const utils = trpc.useUtils();
 
   // Upload queue state
   const [uploadQueue, setUploadQueue] = useState<
@@ -25,8 +23,26 @@ export const FileUploadSection: React.FC = () => {
   >([]);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Get tRPC utils for invalidating queries
+  const utils = trpc.useUtils();
+
+  // Effect to show toast when all uploads are completed successfully
+  useEffect(() => {
+    if (uploadQueue.length > 0 && !isUploading) {
+      const allCompleted = uploadQueue.every((item) => item.status === 'completed');
+      const hasFailures = uploadQueue.some((item) => item.status === 'failed');
+
+      if (allCompleted && !hasFailures) {
+        setShowToast(true);
+      }
+    }
+  }, [uploadQueue, isUploading]);
+
   // Animation state to control fade-out timing
   const [showFileSection, setShowFileSection] = useState(true);
+
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
 
   const handleFilesSelected = (files: File[]) => {
     const newFiles: File[] = [];
@@ -506,6 +522,19 @@ export const FileUploadSection: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Success Toast */}
+      {showToast && (
+        <Toast
+          message="All files uploaded successfully! You can now search for your documents."
+          type="success"
+          actionText="Go to Search"
+          actionHref="/search"
+          onClose={() => setShowToast(false)}
+          autoClose={true}
+          duration={8000}
+        />
+      )}
     </div>
   );
 };
