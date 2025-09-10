@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type * as trpcNext from '@trpc/server/adapters/next';
-import { initializeStorage } from './storage/init';
+import { initializeStorage } from './file-storage/init';
 import { getSearchService } from './search';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

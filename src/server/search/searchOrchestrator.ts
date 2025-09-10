@@ -1,7 +1,7 @@
 import { SearchableDocument, SearchResult, SearchOptions, SearchResponse } from './types';
 import { SearchStorageInterface } from './storageInterface';
 import { FlexSearchService, IndexResult } from './flexSearchService';
-import { FileMetadata } from '../storage/types';
+import { FileMetadata } from '../file-storage/types';
 
 /**
  * SearchOrchestrator coordinates between FlexSearchService and storage

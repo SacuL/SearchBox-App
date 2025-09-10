@@ -1,5 +1,5 @@
 import { publicProcedure, router } from '../trpc';
-import { StorageFactory } from '../storage';
+import { StorageFactory } from '../file-storage';
 
 export const uploadRouter = router({
   // List all uploaded files

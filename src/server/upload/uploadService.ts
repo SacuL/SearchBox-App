@@ -1,4 +1,4 @@
-import { storeFile } from '../files';
+import { storeFile } from '../file-storage';
 import { extractFileContent } from '../text-extraction';
 import { getSearchService } from '../search';
 import { UploadRequest, UploadResult, UploadConfig } from './types';

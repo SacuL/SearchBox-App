@@ -1,6 +1,6 @@
 import FlexSearch from 'flexsearch';
 import { SearchableDocument, SearchOptions } from './types';
-import { FileMetadata } from '../storage/types';
+import { FileMetadata } from '../file-storage/types';
 
 export interface IndexResult {
   success: boolean;
