@@ -1,9 +1,15 @@
 import FlexSearch from 'flexsearch';
-import { SearchableDocument, SearchResult, SearchOptions, SearchResponse } from './types';
+import { SearchableDocument, SearchOptions } from './types';
+import { FileMetadata } from '../storage/types';
+
+export interface IndexResult {
+  success: boolean;
+  indexed: boolean;
+  error?: string;
+}
 
 export class FlexSearchService {
   private index: any;
-  private documents: Map<string, SearchableDocument> = new Map<string, SearchableDocument>();
 
   constructor() {
     // Configure FlexSearch with the specified parameters
@@ -15,15 +21,11 @@ export class FlexSearchService {
    */
   addDocument(doc: SearchableDocument, content: string): void {
     try {
-      // Store the document metadata (without content)
-      this.documents.set(doc.id, doc);
-
-      // Add to search index with content for searching
+      // Add to FlexSearch index with content for searching
       this.index.add(doc.id, content);
 
       console.log(`🔍 Indexed document: ${doc.fileName} (${doc.id})`);
-      console.log(`🔍 Total documents in index: ${this.documents.size}`);
-      console.log(`🔍 Document IDs: ${Array.from(this.documents.keys()).join(', ')}`);
+      console.log(`🔍 Total documents in index: ${this.index.length || 0}`);
     } catch (error) {
       console.error(`❌ Failed to index document ${doc.id}:`, error);
     }
@@ -34,11 +36,8 @@ export class FlexSearchService {
    */
   updateDocument(doc: SearchableDocument, content: string): void {
     try {
-      // Remove old version
-      this.removeDocument(doc.id);
-
-      // Add new version
-      this.addDocument(doc, content);
+      // Update in FlexSearch index
+      this.index.update(doc.id, content);
 
       console.log(`🔄 Updated indexed document: ${doc.fileName} (${doc.id})`);
     } catch (error) {
@@ -51,7 +50,7 @@ export class FlexSearchService {
    */
   removeDocument(id: string): void {
     try {
-      this.documents.delete(id);
+      // Remove from FlexSearch index
       this.index.remove(id);
 
       console.log(`🗑️ Removed indexed document: ${id}`);
@@ -61,114 +60,86 @@ export class FlexSearchService {
   }
 
   /**
-   * Search for documents
+   * Search for documents and return document IDs
    */
-  search(query: string, options: SearchOptions = {}): SearchResponse {
-    const startTime = Date.now();
-
+  search(query: string, _options: SearchOptions = {}): string[] {
     try {
       if (!query || query.trim().length === 0) {
-        return {
-          results: [],
-          total: 0,
-          query,
-          took: Date.now() - startTime,
-        };
+        return [];
       }
 
-      // Perform the search (get all results first, then apply pagination)#
-      //TODO: Handle pagination correctly
+      // Perform the search and return document IDs
       const searchResults = this.index.search(query, {
         suggest: false,
       }) as string[];
 
-      // Get document details
-      const results: SearchResult[] = [];
+      console.log(`🔍 FlexSearch: Found ${searchResults.length} document IDs for query "${query}"`);
 
-      for (const id of searchResults) {
-        const doc = this.documents.get(id);
-        if (doc) {
-          // Apply file type filter if specified
-          if (options.fileTypes && options.fileTypes.length > 0) {
-            if (!options.fileTypes.includes(doc.fileExtension.toLowerCase())) {
-              continue;
-            }
-          }
-
-          const result: SearchResult = {
-            id: doc.id,
-            fileName: doc.fileName,
-            originalName: doc.originalName,
-            fileExtension: doc.fileExtension,
-            mimeType: doc.mimeType,
-            uploadDate: doc.uploadDate,
-            fileSize: doc.fileSize,
-          };
-
-          results.push(result);
-        }
-      }
-
-      // Apply pagination
-      const offset = options.offset || 0;
-      const paginatedResults = results.slice(offset, offset + (options.limit || 50));
-
-      const response: SearchResponse = {
-        results: paginatedResults,
-        total: results.length,
-        query,
-        took: Date.now() - startTime,
-      };
-
-      console.log(
-        `🔍 Search completed: "${query}" -> ${results.length} results in ${response.took}ms`,
-      );
-
-      return response;
+      return searchResults;
     } catch (error) {
-      console.error(`❌ Search failed for query "${query}":`, error);
-      return {
-        results: [],
-        total: 0,
-        query,
-        took: Date.now() - startTime,
-      };
+      console.error(`❌ FlexSearch failed for query "${query}":`, error);
+      return [];
     }
-  }
-
-  /**
-   * Get all indexed documents (for debugging)
-   */
-  getAllDocuments(): SearchableDocument[] {
-    return Array.from(this.documents.values());
-  }
-
-  /**
-   * Get document count
-   */
-  getDocumentCount(): number {
-    return this.documents.size;
   }
 
   /**
    * Clear all documents from the index
    */
   clear(): void {
-    this.documents.clear();
     this.index.clear();
     console.log('🧹 Cleared all documents from search index');
   }
 
   /**
-   * Get index statistics
+   * Index file content for search (high-level method)
+   * @param metadata - The file metadata
+   * @param content - The extracted text content
+   * @returns Promise<IndexResult> - The result of the indexing operation
    */
-  getStats(): { documentCount: number; indexSize: number } {
-    const stats = {
-      documentCount: this.documents.size,
-      indexSize: this.index.length || 0,
-    };
-    console.log('🔍 FlexSearchService.getStats() called:', stats);
-    console.log('🔍 Documents in memory:', Array.from(this.documents.keys()));
-    return stats;
+  async indexFileContent(metadata: FileMetadata, content: string): Promise<IndexResult> {
+    try {
+      if (!content || content.trim().length === 0) {
+        console.log('⚠️ No content to index, skipping');
+        return {
+          success: true,
+          indexed: false,
+        };
+      }
+
+      console.log('🔍 Starting search indexing process...');
+
+      const searchableDocument: SearchableDocument = {
+        id: metadata.id,
+        fileName: metadata.fileName,
+        originalName: metadata.originalName,
+        fileExtension: metadata.fileExtension,
+        mimeType: metadata.mimeType,
+        uploadDate: metadata.uploadDate,
+        fileSize: metadata.fileSize,
+      };
+
+      console.log(`🔍 Adding document to search index (${content.length} characters)...`);
+      this.addDocument(searchableDocument, content);
+      console.log('✅ File indexed successfully');
+
+      return {
+        success: true,
+        indexed: true,
+      };
+    } catch (error) {
+      console.error('❌ Search indexing failed:', error);
+      return {
+        success: false,
+        indexed: false,
+        error: error instanceof Error ? error.message : 'Unknown indexing error',
+      };
+    }
+  }
+
+  /**
+   * Close the service (no-op for in-memory service)
+   */
+  close(): void {
+    // No-op for in-memory service
   }
 }

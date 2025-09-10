@@ -1,4 +1,4 @@
-import { SUPPORTED_EXTENSIONS, FILE_TYPE_REGISTRY } from '../server/business/extract/fileTypes';
+import { SUPPORTED_EXTENSIONS, FILE_TYPE_REGISTRY } from '../server/text-extraction/fileTypes';
 
 // File validation utilities
 export const ALLOWED_FILE_TYPES = SUPPORTED_EXTENSIONS.map((ext) => `.${ext}`);

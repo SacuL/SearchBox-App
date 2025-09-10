@@ -1,10 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import multer from 'multer';
-import { storeFile, extractFileContent, indexFileContent } from '../../server/business';
-import { getSearchService } from '../../server/search';
-import { SUPPORTED_EXTENSIONS } from '../../server/business/extract/fileTypes';
-
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+import { UploadService, UPLOAD_CONFIG } from '../../server/upload';
 
 // Extend NextApiRequest to include file property
 interface NextApiRequestWithFile extends NextApiRequest {
@@ -15,15 +11,17 @@ interface NextApiRequestWithFile extends NextApiRequest {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: MAX_FILE_SIZE,
+    fileSize: UPLOAD_CONFIG.maxFileSize,
   },
   fileFilter: (req, file, cb) => {
     // Check file extension
     const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
 
-    if (!fileExtension || !SUPPORTED_EXTENSIONS.includes(fileExtension as any)) {
+    if (!fileExtension || !UPLOAD_CONFIG.supportedExtensions.includes(fileExtension as any)) {
       return cb(
-        new Error(`File type not supported. Allowed types: ${SUPPORTED_EXTENSIONS.join(', ')}`),
+        new Error(
+          `File type not supported. Allowed types: ${UPLOAD_CONFIG.supportedExtensions.join(', ')}`,
+        ),
       );
     }
 
@@ -49,12 +47,8 @@ export default async function handler(req: NextApiRequestWithFile, res: NextApiR
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Ensure search service is initialized
-  try {
-    getSearchService();
-  } catch (error) {
-    console.error('❌ Search service initialization failed:', error);
-  }
+  // Initialize upload service
+  const uploadService = new UploadService();
 
   try {
     // Use multer to handle file upload
@@ -85,54 +79,23 @@ export default async function handler(req: NextApiRequestWithFile, res: NextApiR
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Step 1: Store the file
-    console.log('📁 Step 1: Storing file...');
-    const storeResult = await storeFile(file.buffer, file.originalname, file.mimetype);
-
-    if (!storeResult.success) {
-      console.log('❌ File storage failed:', storeResult.error);
-      return res.status(500).json({
-        error: storeResult.error || 'Failed to store file',
-      });
+    // Validate file
+    const validation = uploadService.validateFile(file);
+    if (!validation.valid) {
+      console.log('❌ File validation failed:', validation.error);
+      return res.status(400).json({ error: validation.error });
     }
 
-    // Step 2: Extract text content
-    console.log('📄 Step 2: Extracting text content...');
-    const extractResult = await extractFileContent(file.buffer, file.originalname, file.mimetype);
+    // Process upload using file operations
+    const result = await uploadService.processUpload({ file });
 
-    if (!extractResult.success) {
-      console.log('⚠️ Text extraction failed:', extractResult.error);
-      // Continue with upload even if extraction fails
+    if (result.success) {
+      console.log('✅ Upload successful!');
+      return res.status(200).json(result);
+    } else {
+      console.log('❌ Upload failed:', result.error);
+      return res.status(500).json(result);
     }
-
-    // Step 3: Index the content (if extraction was successful and content exists)
-    let indexed = false;
-    if (extractResult.success && extractResult.content && storeResult.metadata) {
-      console.log('🔍 Step 3: Indexing content for search...');
-      const indexResult = await indexFileContent(storeResult.metadata, extractResult.content);
-
-      if (indexResult.success) {
-        indexed = indexResult.indexed;
-      } else {
-        console.log('⚠️ Search indexing failed:', indexResult.error);
-        // Continue with upload even if indexing fails
-      }
-    }
-
-    console.log('✅ Upload successful!');
-    return res.status(200).json({
-      success: true,
-      data: {
-        fileId: storeResult.fileId,
-        fileName: storeResult.metadata?.fileName,
-        originalName: storeResult.metadata?.originalName,
-        fileSize: storeResult.metadata?.fileSize,
-        mimeType: storeResult.metadata?.mimeType,
-        uploadDate: storeResult.metadata?.uploadDate,
-        indexed,
-        message: 'File uploaded successfully',
-      },
-    });
   } catch (error) {
     console.error('❌ Upload error:', error);
     return res.status(500).json({

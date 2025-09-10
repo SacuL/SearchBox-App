@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createCallerFactory } from '../../trpc';
 import { appRouter } from '../../routers/_app';
-import { resetSearchService } from '../index';
+import { resetSearchService, getSearchService } from '../index';
 import { SearchableDocument } from '../types';
 
 describe('Search Router', () => {
@@ -14,7 +14,7 @@ describe('Search Router', () => {
   });
 
   it('should search for documents with basic query', async () => {
-    // First, add a document to the search index
+    // First, add a document to the search index using the search service directly
     const document: SearchableDocument = {
       id: 'test-doc-1',
       fileName: 'test-document.txt',
@@ -25,11 +25,12 @@ describe('Search Router', () => {
       fileSize: 100,
     };
 
-    // Add document to index
-    await caller.search.addToIndex({
-      ...document,
-      content: 'This is a test document about programming and JavaScript development.',
-    });
+    // Add document to index using search service directly
+    const searchService = getSearchService();
+    searchService.addDocument(
+      document,
+      'This is a test document about programming and JavaScript development.',
+    );
 
     // Search for the document
     const result = await caller.search.search({
@@ -84,16 +85,10 @@ describe('Search Router', () => {
       fileSize: 200,
     };
 
-    // Add both documents
-    await caller.search.addToIndex({
-      ...txtDoc,
-      content: 'Text document about programming',
-    });
-
-    await caller.search.addToIndex({
-      ...pdfDoc,
-      content: 'PDF document about programming',
-    });
+    // Add both documents using search service directly
+    const searchService = getSearchService();
+    searchService.addDocument(txtDoc, 'Text document about programming');
+    searchService.addDocument(pdfDoc, 'PDF document about programming');
 
     // Search with file type filter
     const result = await caller.search.search({
@@ -110,7 +105,7 @@ describe('Search Router', () => {
   });
 
   it('should get index statistics', async () => {
-    // Add a document
+    // Add a document using search service directly
     const document: SearchableDocument = {
       id: 'stats-doc',
       fileName: 'stats.txt',
@@ -121,52 +116,20 @@ describe('Search Router', () => {
       fileSize: 100,
     };
 
-    await caller.search.addToIndex({
-      ...document,
-      content: 'Document for statistics test',
-    });
+    const searchService = getSearchService();
+    searchService.addDocument(document, 'Document for statistics test');
 
     // Get statistics
     const result = await caller.search.getIndexStats();
 
     expect(result.success).toBe(true);
     expect(result.data).toBeDefined();
-    expect(result.data?.documentCount).toBe(1);
-    expect(result.data?.indexSize).toBeGreaterThanOrEqual(0);
-  });
-
-  it('should clear the search index', async () => {
-    // Add a document first
-    const document: SearchableDocument = {
-      id: 'clear-doc',
-      fileName: 'clear.txt',
-      originalName: 'clear.txt',
-      fileExtension: 'txt',
-      mimeType: 'text/plain',
-      uploadDate: new Date(),
-      fileSize: 100,
-    };
-
-    await caller.search.addToIndex({
-      ...document,
-      content: 'Document to be cleared',
-    });
-
-    // Verify document exists
-    const statsBefore = await caller.search.getIndexStats();
-    expect(statsBefore.data?.documentCount).toBe(1);
-
-    // Clear the index
-    const clearResult = await caller.search.clearIndex();
-    expect(clearResult.success).toBe(true);
-
-    // Verify index is cleared
-    const statsAfter = await caller.search.getIndexStats();
-    expect(statsAfter.data?.documentCount).toBe(0);
+    expect(result.data?.documentCount).toBe(1); // Storage tracks document count
+    expect(result.data?.indexSize).toBe(0); // FlexSearch doesn't expose index size
   });
 
   it('should handle pagination correctly', async () => {
-    // Add multiple documents
+    // Add multiple documents using search service directly
     const documents = [
       {
         id: 'doc-1',
@@ -200,9 +163,10 @@ describe('Search Router', () => {
       },
     ];
 
-    // Add all documents
+    // Add all documents using search service directly
+    const searchService = getSearchService();
     for (const doc of documents) {
-      await caller.search.addToIndex(doc);
+      searchService.addDocument(doc, doc.content);
     }
 
     // Test pagination - first page
@@ -226,83 +190,5 @@ describe('Search Router', () => {
     expect(secondPage.success).toBe(true);
     expect(secondPage.data?.results).toHaveLength(1);
     expect(secondPage.data?.total).toBe(3);
-  });
-
-  it('should remove documents from index', async () => {
-    // Add a document
-    const document: SearchableDocument = {
-      id: 'remove-doc',
-      fileName: 'remove.txt',
-      originalName: 'remove.txt',
-      fileExtension: 'txt',
-      mimeType: 'text/plain',
-      uploadDate: new Date(),
-      fileSize: 100,
-    };
-
-    await caller.search.addToIndex({
-      ...document,
-      content: 'Document to be removed',
-    });
-
-    // Verify document exists
-    const searchBefore = await caller.search.search({
-      query: 'removed',
-      limit: 10,
-      offset: 0,
-    });
-    expect(searchBefore.data?.results).toHaveLength(1);
-
-    // Remove document
-    const removeResult = await caller.search.removeFromIndex({
-      id: 'remove-doc',
-    });
-    expect(removeResult.success).toBe(true);
-
-    // Verify document is removed
-    const searchAfter = await caller.search.search({
-      query: 'removed',
-      limit: 10,
-      offset: 0,
-    });
-    expect(searchAfter.data?.results).toHaveLength(0);
-  });
-
-  it('should return correct document count for conditional display', async () => {
-    // Start with empty index
-    const statsEmpty = await caller.search.getIndexStats();
-    expect(statsEmpty.success).toBe(true);
-    expect(statsEmpty.data?.documentCount).toBe(0);
-
-    // Add a document
-    const document: SearchableDocument = {
-      id: 'conditional-test-doc',
-      fileName: 'conditional-test.txt',
-      originalName: 'conditional-test.txt',
-      fileExtension: 'txt',
-      mimeType: 'text/plain',
-      uploadDate: new Date(),
-      fileSize: 100,
-    };
-
-    await caller.search.addToIndex({
-      ...document,
-      content: 'Document for conditional display test',
-    });
-
-    // Verify document count increased
-    const statsWithDoc = await caller.search.getIndexStats();
-    expect(statsWithDoc.success).toBe(true);
-    expect(statsWithDoc.data?.documentCount).toBe(1);
-
-    // Remove document
-    await caller.search.removeFromIndex({
-      id: 'conditional-test-doc',
-    });
-
-    // Verify document count is back to 0
-    const statsAfterRemoval = await caller.search.getIndexStats();
-    expect(statsAfterRemoval.success).toBe(true);
-    expect(statsAfterRemoval.data?.documentCount).toBe(0);
   });
 });

@@ -1,36 +1,7 @@
-import { z } from 'zod';
 import { publicProcedure, router } from '../trpc';
 import { StorageFactory } from '../storage';
-import { getSearchService } from '../search';
 
 export const uploadRouter = router({
-  // Get file metadata
-  getFileMetadata: publicProcedure
-    .input(z.object({ fileId: z.string() }))
-    .query(async ({ input }) => {
-      try {
-        const storage = await StorageFactory.getStorage();
-        const metadata = await storage.getFileMetadata(input.fileId);
-
-        if (!metadata) {
-          return {
-            success: false,
-            error: 'File not found',
-          };
-        }
-
-        return {
-          success: true,
-          data: metadata,
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to get file metadata',
-        };
-      }
-    }),
-
   // List all uploaded files
   listFiles: publicProcedure.query(async () => {
     try {
@@ -48,79 +19,4 @@ export const uploadRouter = router({
       };
     }
   }),
-
-  // Delete a file
-  deleteFile: publicProcedure
-    .input(z.object({ fileId: z.string() }))
-    .mutation(async ({ input }) => {
-      try {
-        const storage = await StorageFactory.getStorage();
-
-        // Get file metadata before deletion to check if it was indexed
-        const metadata = await storage.getFileMetadata(input.fileId);
-
-        const success = await storage.deleteFile(input.fileId);
-
-        if (!success) {
-          return {
-            success: false,
-            error: 'File not found or could not be deleted',
-          };
-        }
-
-        // Remove from search index if it was indexed
-        if (metadata) {
-          try {
-            const searchService = getSearchService();
-            searchService.removeDocument(input.fileId);
-            console.log(`🗑️ Removed file ${input.fileId} from search index`);
-          } catch (error) {
-            console.error(`❌ Failed to remove file ${input.fileId} from search index:`, error);
-            // Don't fail the deletion if search index removal fails
-          }
-        }
-
-        return {
-          success: true,
-          message: 'File deleted successfully',
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to delete file',
-        };
-      }
-    }),
-
-  // Check if file exists
-  fileExists: publicProcedure.input(z.object({ fileId: z.string() })).query(async ({ input }) => {
-    try {
-      const storage = await StorageFactory.getStorage();
-      const exists = await storage.fileExists(input.fileId);
-
-      return {
-        success: true,
-        data: { exists },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to check file existence',
-      };
-    }
-  }),
-
-  // Get upload status
-  getUploadStatus: publicProcedure
-    .input(z.object({ uploadId: z.string() }))
-    .query(async ({ input }) => {
-      // TODO: Implement actual upload status checking
-      // For now, return a mock status
-      return {
-        uploadId: input.uploadId,
-        status: 'completed',
-        progress: 100,
-        message: 'Upload completed successfully',
-      };
-    }),
 });

@@ -11,7 +11,6 @@ describe('FlexSearchService', () => {
 
   it('should initialize with correct configuration', () => {
     expect(searchService).toBeDefined();
-    expect(searchService.getDocumentCount()).toBe(0);
   });
 
   it('should add and search documents', () => {
@@ -39,18 +38,17 @@ describe('FlexSearchService', () => {
     searchService.addDocument(doc1, 'This is a test document about programming and JavaScript.');
     searchService.addDocument(doc2, 'Another document about web development and React.');
 
-    expect(searchService.getDocumentCount()).toBe(2);
+    // FlexSearchService doesn't track document count, only search functionality
 
-    // Search for documents
+    // Search for documents - now returns document IDs
     const results = searchService.search('programming');
-    expect(results.results).toHaveLength(1);
-    expect(results.results[0].id).toBe('1');
-    expect(results.took).toBeGreaterThanOrEqual(0);
+    expect(results).toHaveLength(1);
+    expect(results[0]).toBe('1');
 
     // Search for another term
     const results2 = searchService.search('React');
-    expect(results2.results).toHaveLength(1);
-    expect(results2.results[0].id).toBe('2');
+    expect(results2).toHaveLength(1);
+    expect(results2[0]).toBe('2');
   });
 
   it('should handle empty search queries', () => {
@@ -67,11 +65,10 @@ describe('FlexSearchService', () => {
     searchService.addDocument(doc, 'Test content');
 
     const results = searchService.search('');
-    expect(results.results).toHaveLength(0);
-    expect(results.total).toBe(0);
+    expect(results).toHaveLength(0);
   });
 
-  it('should filter by file types', () => {
+  it('should search across different file types', () => {
     const doc1: SearchableDocument = {
       id: '1',
       fileName: 'test.txt',
@@ -95,10 +92,11 @@ describe('FlexSearchService', () => {
     searchService.addDocument(doc1, 'Text document content');
     searchService.addDocument(doc2, 'PDF document content');
 
-    // Search with file type filter
-    const results = searchService.search('document', { fileTypes: ['txt'] });
-    expect(results.results).toHaveLength(1);
-    expect(results.results[0].fileExtension).toBe('txt');
+    // Search for documents containing "document"
+    const results = searchService.search('document');
+    expect(results).toHaveLength(2);
+    expect(results).toContain('1');
+    expect(results).toContain('2');
   });
 
   it('should remove documents', () => {
@@ -113,13 +111,11 @@ describe('FlexSearchService', () => {
     };
 
     searchService.addDocument(doc, 'Test content');
-    expect(searchService.getDocumentCount()).toBe(1);
 
     searchService.removeDocument('1');
-    expect(searchService.getDocumentCount()).toBe(0);
 
     const results = searchService.search('test');
-    expect(results.results).toHaveLength(0);
+    expect(results).toHaveLength(0);
   });
 
   it('should update documents', () => {
@@ -141,11 +137,9 @@ describe('FlexSearchService', () => {
 
     searchService.updateDocument(updatedDoc, 'Updated content with new information');
 
-    expect(searchService.getDocumentCount()).toBe(1);
-
     const results = searchService.search('new information');
-    expect(results.results).toHaveLength(1);
-    expect(results.results[0].id).toBe('1');
+    expect(results).toHaveLength(1);
+    expect(results[0]).toBe('1');
   });
 
   it('should clear all documents', () => {
@@ -171,30 +165,10 @@ describe('FlexSearchService', () => {
 
     searchService.addDocument(doc1, 'Test content 1');
     searchService.addDocument(doc2, 'Test content 2');
-    expect(searchService.getDocumentCount()).toBe(2);
 
     searchService.clear();
-    expect(searchService.getDocumentCount()).toBe(0);
 
     const results = searchService.search('test');
-    expect(results.results).toHaveLength(0);
-  });
-
-  it('should provide index statistics', () => {
-    const doc: SearchableDocument = {
-      id: '1',
-      fileName: 'test.txt',
-      originalName: 'test.txt',
-      fileExtension: 'txt',
-      mimeType: 'text/plain',
-      uploadDate: new Date(),
-      fileSize: 100,
-    };
-
-    searchService.addDocument(doc, 'Test content');
-
-    const stats = searchService.getStats();
-    expect(stats.documentCount).toBe(1);
-    expect(stats.indexSize).toBeGreaterThanOrEqual(0);
+    expect(results).toHaveLength(0);
   });
 });
