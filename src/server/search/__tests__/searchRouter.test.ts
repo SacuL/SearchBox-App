@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createCallerFactory } from '../../trpc';
 import { appRouter } from '../../routers/_app';
-import { resetSearchService, getSearchService } from '../index';
+import { FlexSearchFactory } from '../index';
 import { SearchableDocument } from '../types';
 
 describe('Search Router', () => {
@@ -10,7 +10,7 @@ describe('Search Router', () => {
 
   beforeEach(() => {
     // Reset the search service to start with a clean state
-    resetSearchService();
+    FlexSearchFactory.reset();
   });
 
   it('should search for documents with basic query', async () => {
@@ -26,7 +26,7 @@ describe('Search Router', () => {
     };
 
     // Add document to index using search service directly
-    const searchService = getSearchService();
+    const searchService = FlexSearchFactory.getService();
     searchService.addDocument(
       document,
       'This is a test document about programming and JavaScript development.',
@@ -86,7 +86,7 @@ describe('Search Router', () => {
     };
 
     // Add both documents using search service directly
-    const searchService = getSearchService();
+    const searchService = FlexSearchFactory.getService();
     searchService.addDocument(txtDoc, 'Text document about programming');
     searchService.addDocument(pdfDoc, 'PDF document about programming');
 
@@ -116,7 +116,7 @@ describe('Search Router', () => {
       fileSize: 100,
     };
 
-    const searchService = getSearchService();
+    const searchService = FlexSearchFactory.getService();
     searchService.addDocument(document, 'Document for statistics test');
 
     // Get statistics
@@ -164,7 +164,7 @@ describe('Search Router', () => {
     ];
 
     // Add all documents using search service directly
-    const searchService = getSearchService();
+    const searchService = FlexSearchFactory.getService();
     for (const doc of documents) {
       searchService.addDocument(doc, doc.content);
     }

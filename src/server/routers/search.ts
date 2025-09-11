@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { publicProcedure, router } from '../trpc';
-import { getSearchService } from '../search';
+import { FlexSearchFactory } from '../search';
 
 export const searchRouter = router({
   // Search for files
@@ -15,7 +15,7 @@ export const searchRouter = router({
     )
     .query(async ({ input }) => {
       try {
-        const searchService = getSearchService();
+        const searchService = FlexSearchFactory.getService();
         const results = searchService.search(input.query, {
           limit: input.limit,
           offset: input.offset,
@@ -37,7 +37,7 @@ export const searchRouter = router({
   // Get search index statistics
   getIndexStats: publicProcedure.query(async () => {
     try {
-      const searchService = getSearchService();
+      const searchService = FlexSearchFactory.getService();
       const stats = searchService.getStats();
 
       return {

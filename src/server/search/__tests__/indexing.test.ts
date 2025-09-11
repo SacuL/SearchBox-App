@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getSearchService, resetSearchService } from '../index';
+import { FlexSearchFactory } from '../index';
 import { SearchableDocument } from '../types';
 
 describe('File Indexing Integration', () => {
   beforeEach(() => {
     // Reset the search service for each test
-    resetSearchService();
+    FlexSearchFactory.reset();
   });
 
   it('should index TXT file content', () => {
-    const searchService = getSearchService();
+    const searchService = FlexSearchFactory.getService();
 
     const txtDocument: SearchableDocument = {
       id: 'txt-file-1',
@@ -34,7 +34,7 @@ describe('File Indexing Integration', () => {
   });
 
   it('should index MD file content', () => {
-    const searchService = getSearchService();
+    const searchService = FlexSearchFactory.getService();
 
     const mdDocument: SearchableDocument = {
       id: 'md-file-1',
@@ -60,7 +60,7 @@ describe('File Indexing Integration', () => {
   });
 
   it('should handle multiple file types in search', () => {
-    const searchService = getSearchService();
+    const searchService = FlexSearchFactory.getService();
 
     const txtDoc: SearchableDocument = {
       id: 'txt-1',
@@ -102,7 +102,7 @@ describe('File Indexing Integration', () => {
   });
 
   it('should remove indexed files', () => {
-    const searchService = getSearchService();
+    const searchService = FlexSearchFactory.getService();
 
     const document: SearchableDocument = {
       id: 'file-to-delete',
@@ -128,7 +128,7 @@ describe('File Indexing Integration', () => {
   });
 
   it('should handle empty content gracefully', () => {
-    const searchService = getSearchService();
+    const searchService = FlexSearchFactory.getService();
 
     const document: SearchableDocument = {
       id: 'empty-file',

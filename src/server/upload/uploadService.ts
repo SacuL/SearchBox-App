@@ -1,6 +1,6 @@
 import { storeFile } from '../file-storage';
 import { extractFileContent } from '../text-extraction';
-import { getSearchService } from '../search';
+import { FlexSearchFactory } from '../search';
 import { UploadRequest, UploadResult, UploadConfig } from './types';
 import { UPLOAD_CONFIG } from './config';
 
@@ -49,7 +49,7 @@ export class UploadService {
       let indexed = false;
       if (extractResult.success && extractResult.content && storeResult.metadata) {
         console.log('🔍 Step 3: Indexing content for search...');
-        const searchService = getSearchService();
+        const searchService = FlexSearchFactory.getService();
         const indexResult = await searchService.indexFileContent(
           storeResult.metadata,
           extractResult.content,
