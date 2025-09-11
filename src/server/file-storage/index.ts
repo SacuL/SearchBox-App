@@ -2,10 +2,14 @@ import { LocalStorage } from './localStorage';
 import { MemoryStorage } from './memoryStorage';
 import { StorageInterface, FileMetadata } from './types';
 
+// Use global variable to ensure singleton across all Next.js contexts
+// This is necessary because Next.js API routes and tRPC endpoints run in separate contexts
+declare global {
+  var __storageInstance: StorageInterface | undefined;
+}
+
 // Storage factory to create storage instances
 export class StorageFactory {
-  private static instance: StorageInterface | null = null;
-
   /**
    * Get or create a storage instance
    * @param type - Type of storage ('local' or 'memory')
@@ -15,29 +19,35 @@ export class StorageFactory {
     type: 'local' | 'memory' = 'memory',
     options: { uploadsDir?: string } = {},
   ): Promise<StorageInterface> {
-    // Create a new instance if none exists or if switching storage types
-    if (!this.instance) {
+    // Create a new instance if none exists
+    if (!global.__storageInstance) {
       switch (type) {
         case 'local':
-          this.instance = new LocalStorage(options.uploadsDir);
-          await this.instance.initialize();
+          global.__storageInstance = new LocalStorage(options.uploadsDir);
+          await global.__storageInstance.initialize();
+          console.log('🗄️ Local storage initialized - new global instance created');
           break;
         case 'memory':
-          this.instance = new MemoryStorage();
-          await this.instance.initialize();
+          global.__storageInstance = new MemoryStorage();
+          await global.__storageInstance.initialize();
+          console.log('🧠 Memory storage initialized - new global instance created');
           break;
         default:
           throw new Error(`Unsupported storage type: ${String(type)}`);
       }
+    } else {
+      console.log('🗄️ Storage - returning existing global instance');
     }
-    return this.instance;
+    return global.__storageInstance;
   }
 
   /**
    * Reset the storage instance (useful for testing)
    */
   static reset(): void {
-    this.instance = null;
+    if (global.__storageInstance) {
+      global.__storageInstance = undefined;
+    }
   }
 }
 

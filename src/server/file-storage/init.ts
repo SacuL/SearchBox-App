@@ -1,22 +1,15 @@
 import { StorageFactory } from './index';
 
-// Flag to track if storage has been initialized
-let isInitialized = false;
-
 /**
  * Initialize storage on server startup
+ * The StorageFactory.getStorage() method handles singleton behavior
+ * using global variables
  */
 export async function initializeStorage(): Promise<void> {
-  // Only initialize once
-  if (isInitialized) {
-    return;
-  }
-
   try {
     console.log('🔧 Initializing storage system...');
     await StorageFactory.getStorage('memory');
     console.log('✅ Memory storage initialized successfully');
-    isInitialized = true;
   } catch (error) {
     console.error('❌ Failed to initialize storage:', error);
     throw error;
@@ -24,8 +17,9 @@ export async function initializeStorage(): Promise<void> {
 }
 
 /**
- * Reset initialization flag (useful for testing)
+ * Reset storage instance (useful for testing)
+ * This delegates to StorageFactory which manages the global singleton
  */
 export function resetStorageInitialization(): void {
-  isInitialized = false;
+  StorageFactory.reset();
 }

@@ -40,15 +40,15 @@ describe('FlexSearchService', () => {
 
     // FlexSearchService doesn't track document count, only search functionality
 
-    // Search for documents - now returns document IDs
+    // Search for documents - now returns SearchResponse
     const results = searchService.search('programming');
-    expect(results).toHaveLength(1);
-    expect(results[0]).toBe('1');
+    expect(results.results).toHaveLength(1);
+    expect(results.results[0].id).toBe('1');
 
     // Search for another term
     const results2 = searchService.search('React');
-    expect(results2).toHaveLength(1);
-    expect(results2[0]).toBe('2');
+    expect(results2.results).toHaveLength(1);
+    expect(results2.results[0].id).toBe('2');
   });
 
   it('should handle empty search queries', () => {
@@ -65,7 +65,7 @@ describe('FlexSearchService', () => {
     searchService.addDocument(doc, 'Test content');
 
     const results = searchService.search('');
-    expect(results).toHaveLength(0);
+    expect(results.results).toHaveLength(0);
   });
 
   it('should search across different file types', () => {
@@ -94,9 +94,9 @@ describe('FlexSearchService', () => {
 
     // Search for documents containing "document"
     const results = searchService.search('document');
-    expect(results).toHaveLength(2);
-    expect(results).toContain('1');
-    expect(results).toContain('2');
+    expect(results.results).toHaveLength(2);
+    expect(results.results.map((r) => r.id)).toContain('1');
+    expect(results.results.map((r) => r.id)).toContain('2');
   });
 
   it('should remove documents', () => {
@@ -115,7 +115,7 @@ describe('FlexSearchService', () => {
     searchService.removeDocument('1');
 
     const results = searchService.search('test');
-    expect(results).toHaveLength(0);
+    expect(results.results).toHaveLength(0);
   });
 
   it('should update documents', () => {
@@ -138,8 +138,8 @@ describe('FlexSearchService', () => {
     searchService.updateDocument(updatedDoc, 'Updated content with new information');
 
     const results = searchService.search('new information');
-    expect(results).toHaveLength(1);
-    expect(results[0]).toBe('1');
+    expect(results.results).toHaveLength(1);
+    expect(results.results[0].id).toBe('1');
   });
 
   it('should clear all documents', () => {
@@ -169,6 +169,6 @@ describe('FlexSearchService', () => {
     searchService.clear();
 
     const results = searchService.search('test');
-    expect(results).toHaveLength(0);
+    expect(results.results).toHaveLength(0);
   });
 });
