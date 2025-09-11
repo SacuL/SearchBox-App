@@ -43,12 +43,7 @@ export const LastUploadedFiles: React.FC<LastUploadedFilesProps> = ({ onFileClic
     );
   }
 
-  const files = filesQuery.data.data || [];
-
-  // Sort by upload date (newest first) and take the first 5
-  const recentFiles = files
-    .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())
-    .slice(0, 5);
+  const recentFiles = filesQuery.data.data || [];
 
   if (recentFiles.length === 0) {
     return (

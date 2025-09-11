@@ -213,6 +213,16 @@ export class FlexSearchService {
   }
 
   /**
+   * Get the last N documents sorted by upload date (newest first)
+   */
+  getLastDocuments(limit = 5): SearchableDocument[] {
+    const allDocuments = Array.from(this.documents.values());
+    return allDocuments
+      .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())
+      .slice(0, limit);
+  }
+
+  /**
    * Get document count
    */
   getDocumentCount(): number {
