@@ -13,8 +13,14 @@ export class FlexSearchService {
   private documents = new Map<string, SearchableDocument>();
 
   constructor() {
-    // Configure FlexSearch with the specified parameters
-    this.index = new FlexSearch.Index<string>();
+    // Configure FlexSearch with optimized parameters
+    this.index = new FlexSearch.Index<string>({
+      preset: 'performance', // Optimized for speed
+      tokenize: 'full', // Matches any part of words
+      cache: 100, // Cache up to 100 results
+      resolution: 9, // High scoring resolution
+      context: false, // Contextual indexing
+    });
   }
 
   /**

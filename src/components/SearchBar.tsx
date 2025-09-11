@@ -98,7 +98,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
       <div className="bg-white rounded-lg shadow-md p-6">
         {!hasSearched && (
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Search Documents</h2>
             {indexStats.data?.success && indexStats.data.data && (
               <p className="text-sm text-gray-600">
                 {indexStats.data.data.documentCount}{' '}

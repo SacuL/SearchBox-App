@@ -313,8 +313,6 @@ export const FileUploadSection: React.FC = () => {
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">File Upload</h2>
-
         <FileUpload
           onFilesSelected={handleFilesSelected}
           onValidationError={handleValidationError}

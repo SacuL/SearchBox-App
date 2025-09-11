@@ -75,3 +75,10 @@ These items will not be included in this PoC due to time constraints and priorit
 ## Technical Approach
 
 For the PoC, the implementation will be done using `Next.js` with `React`, combined with `trpc`, which provides a live TypeScript type check on Front and Backend. Files will be stored locally on disk and their metadata in memory. Search will be handled by `FlexSearch`. Parsing of Docx files will be done by `mammoth.js` and text-based pdf content extraction by `pdf-parse`.
+
+## Current version
+
+This PoC has been built to enable upload and search of documents. Everything is stored in memory: the files, the search index, and the files metadata.
+Storage can be easily replaced later with proper storage solutions.
+
+The search supports fuzzy search using "full" [tokenizer](https://github.com/nextapps-de/flexsearch?tab=readme-ov-file#tokenizer-partial-match). For example, if the word `computer` was indexed, searching for `comp`, `uter`, `put`, or `computer` will all match.
