@@ -77,6 +77,7 @@ export class FlexSearchService {
 
   /**
    * Search for documents and return full search results
+   * Searches both content (via FlexSearch) and file names (via simple contains match)
    */
   search(query: string, options: SearchOptions = {}): SearchResponse {
     const startTime = Date.now();
@@ -91,15 +92,31 @@ export class FlexSearchService {
         };
       }
 
-      // Perform the search and get document IDs
-      const documentIds = this.index.search(query, {
+      const normalizedQuery = query.toLowerCase().trim();
+      const foundDocumentIds = new Set<string>();
+
+      // 1. Search content using FlexSearch
+      const contentDocumentIds = this.index.search(query, {
         suggest: false,
       }) as string[];
+
+      contentDocumentIds.forEach((id) => foundDocumentIds.add(id));
+
+      // 2. Search file names using simple contains match
+      // O(n) operation. Can be improved by using a more efficient data structure,
+      // but we expect number of documents to be much smaller than their content (index).
+      for (const [docId, doc] of this.documents) {
+        const originalName = doc.originalName.toLowerCase();
+
+        if (originalName.includes(normalizedQuery)) {
+          foundDocumentIds.add(docId);
+        }
+      }
 
       // Convert document IDs to full search results
       const results: SearchResult[] = [];
 
-      for (const documentId of documentIds) {
+      for (const documentId of foundDocumentIds) {
         const doc = this.documents.get(documentId);
         if (doc) {
           // Apply file type filter if specified
@@ -125,7 +142,7 @@ export class FlexSearchService {
 
       // Apply pagination
       const offset = options.offset || 0;
-      const paginatedResults = results.slice(offset, offset + (options.limit || 50));
+      const paginatedResults = results.slice(offset, offset + (options.limit || 100));
 
       const response: SearchResponse = {
         results: paginatedResults,
@@ -135,12 +152,12 @@ export class FlexSearchService {
       };
 
       console.log(
-        `🔍 FlexSearch: Found ${results.length} results for query "${query}" in ${response.took}ms`,
+        `🔍 Search: Found ${results.length} results for query "${query}" (${contentDocumentIds.length} from content, ${foundDocumentIds.size - contentDocumentIds.length} from file names) in ${response.took}ms`,
       );
 
       return response;
     } catch (error) {
-      console.error(`❌ FlexSearch failed for query "${query}":`, error);
+      console.error(`❌ Search failed for query "${query}":`, error);
       return {
         results: [],
         total: 0,

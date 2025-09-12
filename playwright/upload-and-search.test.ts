@@ -67,7 +67,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
 
     // Wait for the SearchBar to appear (it only shows when there are documents in the index)
 
-    await expect(page.locator('h2:has-text("Search Documents")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('p:has-text("document indexed")')).toBeVisible({ timeout: 10000 });
 
     // Find the search input
     const searchInput = page.locator('input[placeholder*="search query"]');
@@ -241,7 +241,7 @@ Search term: MULTI_FILE_TEST_3_${timestamp}`,
     await expect(page.locator('h1')).toContainText('Search Documents');
 
     // Wait for the SearchBar to appear (it only shows when there are documents in the index)
-    await expect(page.locator('h2:has-text("Search Documents")')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('p:has-text("documents indexed")')).toBeVisible({ timeout: 15000 });
 
     const searchInput = page.locator('input[placeholder*="search query"]');
     await expect(searchInput).toBeVisible();

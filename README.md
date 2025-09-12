@@ -82,3 +82,7 @@ This PoC has been built to enable upload and search of documents. Everything is 
 Storage can be easily replaced later with proper storage solutions.
 
 The search supports fuzzy search using "full" [tokenizer](https://github.com/nextapps-de/flexsearch?tab=readme-ov-file#tokenizer-partial-match). For example, if the word `computer` was indexed, searching for `comp`, `uter`, `put`, or `computer` will all match.
+
+### Next steps
+
+For SearchBox to launch as a MVP it needs a few improvements. Currently, each instance of the app serves a single user, there is no authentication or persistent storage. The app needs to control user access and properly isolate user data.
