@@ -469,6 +469,18 @@ export const FileUploadSection: React.FC = () => {
                 </div>
               ))}
             </div>
+
+            {/* Search Button - Show when all uploads are completed */}
+            {!isUploading && uploadQueue.length > 0 && (
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={() => (window.location.href = '/search')}
+                  className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-md hover:shadow-lg"
+                >
+                  🔍 Search Documents
+                </button>
+              </div>
+            )}
           </div>
         )}
 
