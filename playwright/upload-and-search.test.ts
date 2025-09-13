@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import * as fs from 'fs';
 import path from 'path';
 
 test.setTimeout(60e3); // 60 seconds timeout for file operations
@@ -22,7 +23,6 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
   const testFilePath = path.join(__dirname, `test-document-${timestamp}.txt`);
 
   // Write the test content to a file (we'll create this in the test)
-  const fs = require('fs');
   fs.writeFileSync(testFilePath, testContent);
 
   try {
@@ -170,9 +170,7 @@ test('upload multiple files and search across them', async ({ page }) => {
 
   // Wait for the page to load
   await expect(page.locator('h1')).toContainText('Upload Documents');
-
   // Create multiple test files
-  const fs = require('fs');
   const timestamp = Date.now();
   const testFiles = [
     {
