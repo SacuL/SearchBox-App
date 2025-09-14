@@ -7,14 +7,14 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']),
+  GOOGLE_API_KEY: z.string().optional(),
 });
 
 const _env = envSchema.safeParse(process.env);
 
 if (!_env.success) {
   throw new Error(
-    '❌ Invalid environment variables: ' +
-      JSON.stringify(_env.error.format(), null, 4),
+    '❌ Invalid environment variables: ' + JSON.stringify(_env.error.format(), null, 4),
   );
 }
 export const env = _env.data;

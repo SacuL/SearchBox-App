@@ -12,6 +12,7 @@ export interface UploadResult {
     mimeType: string;
     uploadDate: Date;
     indexed: boolean;
+    vectorStoreUpdated: boolean;
     message: string;
   };
   error?: string;

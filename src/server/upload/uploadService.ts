@@ -1,6 +1,7 @@
 import { storeFile } from '../file-storage';
 import { extractFileContent } from '../text-extraction';
 import { FlexSearchFactory } from '../search';
+import { VectorStoreService } from '../vector-store';
 import { UploadRequest, UploadResult, UploadConfig } from './types';
 import { UPLOAD_CONFIG } from './config';
 
@@ -63,6 +64,21 @@ export class UploadService {
         }
       }
 
+      // Step 4: Update vector store (if extraction was successful)
+      let vectorStoreUpdated = false;
+      if (extractResult.success && extractResult.content) {
+        console.log('🔍 Step 4: Updating vector store...');
+        const vectorStoreResult = await VectorStoreService.buildVectorStore();
+
+        if (vectorStoreResult.success) {
+          vectorStoreUpdated = true;
+          console.log('✅ Vector store updated successfully');
+        } else {
+          console.log('⚠️ Vector store update failed:', vectorStoreResult.error);
+          // Continue with upload even if vector store update fails
+        }
+      }
+
       console.log('✅ Upload processed successfully!');
       return {
         success: true,
@@ -74,6 +90,7 @@ export class UploadService {
           mimeType: storeResult.metadata!.mimeType,
           uploadDate: storeResult.metadata!.uploadDate,
           indexed,
+          vectorStoreUpdated,
           message: 'File uploaded successfully',
         },
       };
