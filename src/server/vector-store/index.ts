@@ -19,6 +19,7 @@ export class VectorStoreService {
   private static faissStore: FaissStore | null = null;
   private static embeddings: GoogleGenerativeAIEmbeddings | null = null;
   private static textSplitter: RecursiveCharacterTextSplitter | null = null;
+  private static processedFiles: Set<string> = new Set<string>();
 
   /**
    * Initialize the vector store components
@@ -57,7 +58,83 @@ export class VectorStoreService {
   }
 
   /**
+   * Add a single document to the vector store incrementally
+   */
+  static async addDocumentToVectorStore(
+    fileId: string,
+    fileName: string,
+    originalName: string,
+    fileSize: number,
+    mimeType: string,
+    uploadDate: Date,
+    content: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Check if file was already processed
+      if (this.processedFiles.has(fileId)) {
+        console.log(`📄 File ${fileName} already processed, skipping...`);
+        return { success: true };
+      }
+
+      // Initialize components
+      const initialized = await this.initializeComponents();
+      if (!initialized) {
+        console.log('⚠️ Vector store initialization skipped');
+        return {
+          success: false,
+          error: 'VectorStore not available.',
+        };
+      }
+
+      console.log(`🔍 Adding document ${fileName} to vector store...`);
+
+      // Create document
+      const document = new Document({
+        pageContent: content,
+        metadata: {
+          fileId,
+          fileName,
+          originalName,
+          fileSize,
+          mimeType,
+          uploadDate: uploadDate.toISOString(),
+        },
+      });
+
+      // Split document into chunks
+      const splitDocuments = await this.textSplitter!.splitDocuments([document]);
+      console.log(`📄 Split into ${splitDocuments.length} chunks`);
+
+      if (this.faissStore === null) {
+        // Create new vector store if none exists
+        console.log('🏗️ Creating new FAISS vector store...');
+        this.faissStore = await FaissStore.fromDocuments(splitDocuments, this.embeddings!);
+        console.log('✅ New vector store created successfully');
+      } else {
+        // Add to existing vector store
+        console.log('➕ Adding to existing FAISS vector store...');
+        await this.faissStore.addDocuments(splitDocuments);
+        console.log('✅ Document added to existing vector store');
+      }
+
+      // Mark file as processed
+      this.processedFiles.add(fileId);
+      console.log(`✅ Document ${fileName} added to vector store successfully`);
+
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to add document to vector store:', errorMessage);
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
    * Build or rebuild the vector store from all uploaded documents
+   * This method rebuilds the entire vector store from scratch
    */
   static async buildVectorStore(): Promise<{ success: boolean; error?: string }> {
     try {
@@ -89,6 +166,12 @@ export class VectorStoreService {
       const documents: Document[] = [];
       for (const fileMetadata of files) {
         try {
+          // Skip if already processed
+          if (this.processedFiles.has(fileMetadata.id)) {
+            console.log(`📄 File ${fileMetadata.fileName} already processed, skipping...`);
+            continue;
+          }
+
           // Get file content
           const fileBuffer = await storage.getFile(fileMetadata.id);
           if (!fileBuffer) {
@@ -117,6 +200,8 @@ export class VectorStoreService {
               },
             });
             documents.push(document);
+            // Mark as processed
+            this.processedFiles.add(fileMetadata.id);
             console.log(`✅ Processed file: ${fileMetadata.fileName}`);
           } else {
             console.warn(`⚠️ Could not extract content from: ${fileMetadata.fileName}`);
@@ -212,5 +297,31 @@ export class VectorStoreService {
     this.faissStore = null;
     this.embeddings = null;
     this.textSplitter = null;
+    this.processedFiles.clear();
+  }
+
+  /**
+   * Get the number of processed files
+   */
+  static getProcessedFilesCount(): number {
+    return this.processedFiles.size;
+  }
+
+  /**
+   * Check if a file has been processed
+   */
+  static isFileProcessed(fileId: string): boolean {
+    return this.processedFiles.has(fileId);
+  }
+
+  /**
+   * Force rebuild the vector store from scratch
+   * This clears the processed files tracking and rebuilds everything
+   */
+  static async forceRebuildVectorStore(): Promise<{ success: boolean; error?: string }> {
+    console.log('🔄 Force rebuilding vector store from scratch...');
+    this.processedFiles.clear();
+    this.faissStore = null;
+    return await this.buildVectorStore();
   }
 }

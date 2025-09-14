@@ -66,13 +66,21 @@ export class UploadService {
 
       // Step 4: Update vector store (if extraction was successful)
       let vectorStoreUpdated = false;
-      if (extractResult.success && extractResult.content) {
-        console.log('🔍 Step 4: Updating vector store...');
-        const vectorStoreResult = await VectorStoreService.buildVectorStore();
+      if (extractResult.success && extractResult.content && storeResult.metadata) {
+        console.log('🔍 Step 4: Adding document to vector store...');
+        const vectorStoreResult = await VectorStoreService.addDocumentToVectorStore(
+          storeResult.metadata.id,
+          storeResult.metadata.fileName,
+          storeResult.metadata.originalName,
+          storeResult.metadata.fileSize,
+          storeResult.metadata.mimeType,
+          storeResult.metadata.uploadDate,
+          extractResult.content,
+        );
 
         if (vectorStoreResult.success) {
           vectorStoreUpdated = true;
-          console.log('✅ Vector store updated successfully');
+          console.log('✅ Document added to vector store successfully');
         } else {
           console.log('⚠️ Vector store update failed:', vectorStoreResult.error);
           // Continue with upload even if vector store update fails
