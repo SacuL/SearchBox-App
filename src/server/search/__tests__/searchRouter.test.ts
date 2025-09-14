@@ -1,8 +1,16 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createCallerFactory } from '../../trpc';
 import { appRouter } from '../../routers/_app';
 import { FlexSearchFactory } from '../index';
 import { SearchableDocument } from '../types';
+
+// Mock pdf-parse to prevent file system access during tests
+vi.mock('pdf-parse', () => ({
+  default: vi.fn().mockResolvedValue({
+    text: 'Mock PDF content',
+    numpages: 1,
+  }),
+}));
 
 describe('Search Router', () => {
   const createCaller = createCallerFactory(appRouter);
