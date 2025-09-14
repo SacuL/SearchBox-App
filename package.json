@@ -18,8 +18,11 @@
     "singleQuote": true
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@langchain/community": "^0.3.55",
     "@langchain/core": "^0.3.75",
+    "@langchain/google-genai": "^0.2.17",
+    "@langchain/textsplitters": "^0.1.0",
     "@tanstack/react-query": "^5.80.3",
     "@trpc/client": "npm:@trpc/client",
     "@trpc/next": "npm:@trpc/next",
@@ -30,6 +33,7 @@
     "@types/uuid": "^10.0.0",
     "better-sqlite3": "^12.2.0",
     "clsx": "^2.0.0",
+    "faiss-node": "^0.5.1",
     "flexsearch": "^0.8.212",
     "langchain": "^0.3.33",
     "lucide-react": "^0.542.0",

@@ -37,3 +37,17 @@ export interface FileInfo {
   /** The last modified date */
   lastModified: Date;
 }
+
+/**
+ * Configuration for the VectorStore
+ */
+export interface VectorStoreConfig {
+  /** Configuration for the document loader */
+  documentLoader: DocumentLoaderConfig;
+  /** Chunk size for text splitting (default: 1000) */
+  chunkSize?: number;
+  /** Chunk overlap for text splitting (default: 200) */
+  chunkOverlap?: number;
+  /** Google API key for embeddings */
+  googleApiKey: string;
+}
