@@ -18,6 +18,7 @@
     "singleQuote": true
   },
   "dependencies": {
+    "@langchain/core": "^0.3.75",
     "@tanstack/react-query": "^5.80.3",
     "@trpc/client": "npm:@trpc/client",
     "@trpc/next": "npm:@trpc/next",
@@ -29,6 +30,7 @@
     "better-sqlite3": "^12.2.0",
     "clsx": "^2.0.0",
     "flexsearch": "^0.8.212",
+    "langchain": "^0.3.33",
     "lucide-react": "^0.542.0",
     "mammoth": "^1.10.0",
     "multer": "^2.0.2",

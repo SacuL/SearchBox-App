@@ -46,3 +46,6 @@ playwright/test-results
 
 # eslint cache
 .eslintcache
+
+
+.env

@@ -74,15 +74,40 @@ These items will not be included in this PoC due to time constraints and priorit
 
 ## Technical Approach
 
-For the PoC, the implementation will be done using `Next.js` with `React`, combined with `trpc`, which provides a live TypeScript type check on Front and Backend. Files will be stored locally on disk and their metadata in memory. Search will be handled by `FlexSearch`. Parsing of Docx files will be done by `mammoth.js` and text-based pdf content extraction by `pdf-parse`.
+For the PoC, the implementation will be done using `Next.js` with `React`, combined with `trpc`, which provides a live TypeScript type check on Front and Backend. Files and their metadata will be stored in memory. Search will be handled by `FlexSearch`. Parsing of Docx files will be done by `mammoth.js` and text-based pdf content extraction by `pdf-parse`.
 
-## Current version
+## The First version
 
-This PoC has been built to enable upload and search of documents. Everything is stored in memory: the files, the search index, and the files metadata.
+The first version of this PoC has been built to enable upload and search of documents. Everything is stored in memory: the files, the search index, and the files metadata.
 Storage can be easily replaced later with proper storage solutions.
 
 The search supports fuzzy search using "full" [tokenizer](https://github.com/nextapps-de/flexsearch?tab=readme-ov-file#tokenizer-partial-match). For example, if the word `computer` was indexed, searching for `comp`, `uter`, `put`, or `computer` will all match.
 
-### Next steps
+## Next steps
 
 For SearchBox to launch as a MVP it needs a few improvements. Currently, each instance of the app serves a single user, there is no authentication or persistent storage. The app needs to control user access and properly isolate user data.
+
+## Bonus!
+
+To improve the search functionality, we want to add semantic search using vectors. Although initially out-of-scope, I consider it a good opportunity to demonstrate the use of AI.
+A popular approach to semantic search is to use a pre trained model to embed the text into a vector space where vectors represent the meaning of the text based on their position in the space. By building an index of the extracted embedding we can then perform vector searches using algorithms for nearest neighbor search.
+
+In this project we will use [Google Gemini](https://ai.google.dev/gemini-api/docs/embeddings) to generate the embeddings from the uploaded documents and [FAISS library](https://arxiv.org/abs/2401.08281) to perform the vector search.
+
+Additionally, building a vector search index is the first step in developing a Retrieval-Augmented Generation (RAG) solution, enabling contextually relevant document querying. By using the created index, we can build a system that retrieves the most relevant document chunks based on semantic similarity to a user’s query. In the RAG pipeline, these retrieved chunks serve as context for a large language model (LLM). For example, if a user uploads company policy documents outlining HR and IT guidelines, they could ask questions like, "What are the reimbursement rules for home office internet expenses?". The LLM then generates precise, context-aware responses by combining the retrieved document content with its generative capabilities, delivering answers based in the uploaded documents.
+For this POC, however, implementing the complete RAG solution is out of scope, and we will focus on building and testing the semantic search component to validate its effectiveness.
+
+### Building the vector search
+
+To build the vector search we will use [langchain](https://docs.langchain.com/oss/javascript/langchain/knowledge-base). To process the uploaded documents and create a searchable index we will follow these steps:
+
+1. Load documents using document loaders
+2. Split the document's texts into chunks using text splitters
+3. Load the chunks into a vector store
+
+The vector store can then be used to answer user queries.
+
+- Load documents using [langchain directory loaders](https://docs.langchain.com/oss/javascript/integrations/document_loaders/file_loaders/directory) and assigning the loaders we need:
+  - [pdf loader](https://docs.langchain.com/oss/javascript/integrations/document_loaders/file_loaders/pdf)
+  - [docx loader](https://docs.langchain.com/oss/javascript/integrations/document_loaders/file_loaders/docx)
+  - [text loader](https://docs.langchain.com/oss/javascript/integrations/document_loaders/file_loaders/text), for txt and md files
