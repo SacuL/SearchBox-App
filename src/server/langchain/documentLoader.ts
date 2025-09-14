@@ -1,4 +1,7 @@
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
+import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
+import { DocxLoader } from '@langchain/community/document_loaders/fs/docx';
+import { TextLoader } from 'langchain/document_loaders/fs/text';
 import { Document } from '@langchain/core/documents';
 import { DocumentLoaderConfig } from './types';
 
@@ -11,10 +14,21 @@ export class DocumentLoader {
 
   /**
    * Creates a new DocumentLoader instance.
-   * @param directoryPath - The path to the directory containing the files to load
+   * @param config - Configuration object containing directory path and options
    */
   constructor(config: DocumentLoaderConfig) {
-    this.directoryLoader = new DirectoryLoader(config.directoryPath, {}, config.recursive ?? false);
+    const loaders = {
+      '.pdf': (path: string) => new PDFLoader(path),
+      '.docx': (path: string) => new DocxLoader(path),
+      '.txt': (path: string) => new TextLoader(path),
+      '.md': (path: string) => new TextLoader(path),
+    };
+
+    this.directoryLoader = new DirectoryLoader(
+      config.directoryPath,
+      loaders,
+      config.recursive ?? false,
+    );
   }
 
   /**
@@ -26,8 +40,9 @@ export class DocumentLoader {
       const documents = await this.directoryLoader.load();
       return documents;
     } catch (error) {
-      console.error('Error loading documents:', error);
-      throw new Error(`Failed to load documents from directory: ${error as string}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error loading documents:', errorMessage);
+      throw new Error(`Failed to load documents from directory: ${errorMessage}`);
     }
   }
 
