@@ -38,14 +38,9 @@ function findExtractor(extension: string): ExtractorRegistration | null {
  * Extract text content from a file buffer
  * @param buffer - The file buffer to extract text from
  * @param fileName - The name of the file
- * @param _mimeType - The MIME type of the file (currently unused)
  * @returns Promise<ExtractResult> - The result of the extraction operation
  */
-export async function extractFileContent(
-  buffer: Buffer,
-  fileName: string,
-  _mimeType: string,
-): Promise<ExtractResult> {
+export async function extractFileContent(buffer: Buffer, fileName: string): Promise<ExtractResult> {
   try {
     // Get file type information
     const fileTypeInfo = getFileTypeInfo(fileName);

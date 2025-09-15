@@ -2,6 +2,7 @@
 import type * as trpcNext from '@trpc/server/adapters/next';
 import { initializeStorage } from './file-storage/init';
 import { initializeSearchService } from './search/init';
+import { getVectorStoreService } from './vector-store/singleton';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface CreateContextOptions {
@@ -27,7 +28,12 @@ export async function createContextInner(_opts: CreateContextOptions) {
     console.error('Search service initialization failed:', error);
   }
 
-  return {};
+  // Get vector store service singleton
+  const vectorStoreService = getVectorStoreService();
+
+  return {
+    vectorStoreService,
+  };
 }
 
 export type Context = Awaited<ReturnType<typeof createContextInner>>;

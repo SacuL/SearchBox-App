@@ -1,7 +1,7 @@
 import { storeFile } from '../file-storage';
 import { extractFileContent } from '../text-extraction';
 import { FlexSearchFactory } from '../search';
-import { VectorStoreService } from '../vector-store';
+import { getVectorStoreService } from '../vector-store/singleton';
 import { UploadRequest, UploadResult, UploadConfig } from './types';
 import { UPLOAD_CONFIG } from './config';
 
@@ -39,7 +39,7 @@ export class UploadService {
 
       // Step 2: Extract text content
       console.log('📄 Step 2: Extracting text content...');
-      const extractResult = await extractFileContent(file.buffer, file.originalname, file.mimetype);
+      const extractResult = await extractFileContent(file.buffer, file.originalname);
 
       if (!extractResult.success) {
         console.log('⚠️ Text extraction failed:', extractResult.error);
@@ -68,7 +68,8 @@ export class UploadService {
       let vectorStoreUpdated = false;
       if (extractResult.success && extractResult.content && storeResult.metadata) {
         console.log('🔍 Step 4: Adding document to vector store...');
-        const vectorStoreResult = await VectorStoreService.addDocumentToVectorStore(
+        const vectorStoreService = getVectorStoreService();
+        const vectorStoreResult = await vectorStoreService.addDocumentToVectorStore(
           storeResult.metadata.id,
           storeResult.metadata.fileName,
           storeResult.metadata.originalName,

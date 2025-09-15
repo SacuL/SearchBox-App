@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { publicProcedure, router } from '../trpc';
 import { FlexSearchFactory } from '../search';
-import { VectorStoreService } from '../vector-store';
 
 export const searchRouter = router({
   // Search for files
@@ -43,9 +42,9 @@ export const searchRouter = router({
         limit: z.number().min(1).max(20).optional().default(4),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
-        const result = await VectorStoreService.similaritySearch(input.query, input.limit);
+        const result = await ctx.vectorStoreService.similaritySearch(input.query, input.limit);
         return result;
       } catch (error) {
         return {
@@ -56,14 +55,17 @@ export const searchRouter = router({
     }),
 
   // Check if vector store is available
-  isVectorStoreAvailable: publicProcedure.query(async () => {
+  isVectorStoreAvailable: publicProcedure.query(async ({ ctx }) => {
     try {
-      const isAvailable = await VectorStoreService.isAvailable();
+      console.log('🔍 Search router: Checking vector store availability...');
+      const isAvailable = await ctx.vectorStoreService.isAvailable();
+      console.log('🔍 Search router: Vector store availability result:', isAvailable);
       return {
         success: true,
         data: { available: isAvailable },
       };
     } catch (error) {
+      console.error('🔍 Search router: Error checking vector store availability:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to check vector store availability',

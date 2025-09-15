@@ -17,19 +17,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
     setHasSearched(false);
   }, []);
 
-  // Check if there are any documents in the index
-  const indexStats = trpc.search.getIndexStats.useQuery(undefined, {
+  // Check if vector store is available
+  const vectorStoreStatus = trpc.search.isVectorStoreAvailable.useQuery(undefined, {
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: false, // Don't refetch on window focus
     staleTime: 0, // Always consider data stale
   });
 
-  // Use tRPC to search - this is a query that runs when searchQuery changes
-  const searchResult = trpc.search.search.useQuery(
+  // Use tRPC to search with vector store - this is a query that runs when searchQuery changes
+  const searchResult = trpc.search.vectorSearch.useQuery(
     {
       query: searchQuery,
       limit: 20,
-      offset: 0,
     },
     {
       enabled: searchQuery.length > 0, // Only run query when we have a search term
@@ -75,21 +74,29 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
     document.body.removeChild(link);
   };
 
-  // Debug logging for index stats
+  // Debug logging for vector store status
   React.useEffect(() => {
-    console.log('🔍 SearchBar indexStats:', {
-      isLoading: indexStats.isLoading,
-      isError: indexStats.isError,
-      data: indexStats.data,
-      documentCount: indexStats.data?.success ? indexStats.data.data?.documentCount : 'unknown',
+    console.log('🔍 SearchBar vectorStoreStatus:', {
+      isLoading: vectorStoreStatus.isLoading,
+      isError: vectorStoreStatus.isError,
+      data: vectorStoreStatus.data,
+      available: vectorStoreStatus.data?.success
+        ? vectorStoreStatus.data.data?.available
+        : 'unknown',
     });
-  }, [indexStats.isLoading, indexStats.isError, indexStats.data]);
+  }, [vectorStoreStatus.isLoading, vectorStoreStatus.isError, vectorStoreStatus.data]);
 
-  // Don't render if there are no documents in the index or while loading
+  // Don't render if vector store is not available or while loading
   if (
-    indexStats.isLoading ||
-    (indexStats.data?.success && indexStats.data.data?.documentCount === 0)
+    vectorStoreStatus.isLoading ||
+    (vectorStoreStatus.data?.success && !vectorStoreStatus.data.data?.available)
   ) {
+    console.log('🔍 SearchBar not rendering:', {
+      isLoading: vectorStoreStatus.isLoading,
+      hasData: !!vectorStoreStatus.data,
+      success: vectorStoreStatus.data?.success,
+      available: vectorStoreStatus.data?.data?.available,
+    });
     return null;
   }
 
@@ -98,10 +105,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
       <div className="bg-white rounded-lg shadow-md p-6">
         {!hasSearched && (
           <div className="text-center mb-6">
-            {indexStats.data?.success && indexStats.data.data && (
+            {vectorStoreStatus.data?.success && vectorStoreStatus.data.data?.available && (
               <p className="text-sm text-gray-600">
-                {indexStats.data.data.documentCount}{' '}
-                {indexStats.data.data.documentCount === 1 ? 'document' : 'documents'} indexed
+                Vector search is ready - semantic search enabled
               </p>
             )}
           </div>
@@ -134,59 +140,72 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
               Search Results
               {searchResult.data.success && searchResult.data.data && (
                 <span className="text-sm text-gray-500 ml-2">
-                  ({searchResult.data.data.total} results found)
+                  ({searchResult.data.data.length} results found)
                 </span>
               )}
             </h3>
 
             {searchResult.data.success && searchResult.data.data ? (
               <div className="space-y-4">
-                {searchResult.data.data.results.length > 0 ? (
-                  searchResult.data.data.results.map((result: any) => (
+                {searchResult.data.data.length > 0 ? (
+                  searchResult.data.data.map((result: any, index: number) => (
                     <div
-                      key={result.id}
+                      key={`${result.metadata?.fileId || index}`}
                       className="bg-gray-50 border border-gray-200 rounded-lg p-4"
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-gray-900">{result.originalName}</h4>
+                          <h4 className="font-medium text-gray-900">
+                            {result.metadata?.fileName || `Document ${index + 1}`}
+                          </h4>
                           <span
-                            className={`text-xs px-2 py-1 rounded-full ${getFileTypeColors(result.fileExtension).bg} ${getFileTypeColors(result.fileExtension).text}`}
+                            className={`text-xs px-2 py-1 rounded-full ${getFileTypeColors(result.metadata?.fileExtension || 'txt').bg} ${getFileTypeColors(result.metadata?.fileExtension || 'txt').text}`}
                           >
-                            {getFileTypeDisplayName(result.fileExtension)}
+                            {getFileTypeDisplayName(result.metadata?.fileExtension || 'txt')}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500">
-                          Size: {(result.fileSize / 1024).toFixed(1)} KB | Uploaded:{' '}
-                          {new Date(result.uploadDate).toLocaleDateString()}
-                        </p>
-                        <div className="flex justify-end">
-                          <button
-                            onClick={() => handleDownload(result.id, result.originalName)}
-                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                          >
-                            <svg
-                              className="w-4 h-4 mr-2"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                            Download
-                          </button>
+                        <div className="text-sm text-gray-600">
+                          <p className="mb-2">
+                            <strong>Relevant content:</strong>
+                          </p>
+                          <p className="bg-white p-3 rounded border text-gray-800">
+                            {result.pageContent}
+                          </p>
                         </div>
+                        {result.metadata?.fileId && (
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() =>
+                                handleDownload(
+                                  result.metadata.fileId,
+                                  result.metadata.fileName || 'document',
+                                )
+                              }
+                              className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                            >
+                              <svg
+                                className="w-4 h-4 mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                              Download
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    <p>No results found for "{searchResult.data.data.query}"</p>
+                    <p>No results found for "{searchQuery}"</p>
                   </div>
                 )}
               </div>
