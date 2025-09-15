@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FileUpload } from './FileUpload';
 import { FileList } from './FileList';
 import { Toast } from './Toast';
@@ -10,6 +10,12 @@ export const FileUploadSection: React.FC = () => {
     fileTypeErrors: string[];
     sizeErrors: { name: string; size: number }[];
   }>({ fileTypeErrors: [], sizeErrors: [] });
+
+  // Ref for the upload queue section
+  const uploadQueueRef = useRef<HTMLDivElement>(null);
+
+  // State for upload queue collapse
+  const [isUploadQueueCollapsed, setIsUploadQueueCollapsed] = useState(false);
 
   // Upload queue state
   const [uploadQueue, setUploadQueue] = useState<
@@ -121,6 +127,17 @@ export const FileUploadSection: React.FC = () => {
       setValidationErrors({ fileTypeErrors: [], sizeErrors: [] });
       setUploadQueue(queue);
       setIsUploading(true);
+
+      // Scroll to the upload queue section
+      setTimeout(() => {
+        if (uploadQueueRef.current) {
+          uploadQueueRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          });
+        }
+      }, 100); // Small delay to ensure the upload queue is rendered
+
       // Start processing the queue
       processUploadQueue(queue);
     }, 500); // Match the animation duration
@@ -416,58 +433,90 @@ export const FileUploadSection: React.FC = () => {
 
         {/* Upload Queue Display */}
         {uploadQueue.length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Upload Queue {isUploading && '(Processing...)'}
-            </h3>
-            <div className="space-y-3">
-              {uploadQueue.map((item) => (
-                <div key={item.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-900">{item.file.name}</span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        item.status === 'pending'
-                          ? 'bg-gray-100 text-gray-600'
-                          : item.status === 'uploading'
-                            ? 'bg-blue-100 text-blue-600'
-                            : item.status === 'completed'
-                              ? 'bg-green-100 text-green-600'
-                              : 'bg-red-100 text-red-600'
-                      }`}
-                    >
-                      {item.status === 'pending'
-                        ? 'Pending'
-                        : item.status === 'uploading'
-                          ? 'Uploading'
-                          : item.status === 'completed'
-                            ? 'Completed'
-                            : 'Failed'}
-                    </span>
-                  </div>
-
-                  {item.status === 'uploading' && (
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${item.progress}%` }}
-                      ></div>
-                    </div>
-                  )}
-
-                  {item.status === 'failed' && item.error && (
-                    <div className="mt-2">
-                      <p className="text-xs text-red-600 mb-2">{formatErrorMessage(item.error)}</p>
-                      <button
-                        onClick={() => handleRetryUpload(item.id)}
-                        className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors duration-200"
+          <div ref={uploadQueueRef} className="mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Upload Queue {isUploading && '(Processing...)'}
+              </h3>
+              <button
+                onClick={() => setIsUploadQueueCollapsed(!isUploadQueueCollapsed)}
+                className="flex items-center text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200"
+                title={isUploadQueueCollapsed ? 'Expand upload queue' : 'Collapse upload queue'}
+              >
+                <span className="mr-1">{isUploadQueueCollapsed ? 'Show' : 'Hide'}</span>
+                <svg
+                  className={`w-4 h-4 transition-transform duration-200 ${
+                    isUploadQueueCollapsed ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div
+              className={`transition-all duration-300 ease-in-out ${
+                isUploadQueueCollapsed ? 'max-h-0 overflow-hidden' : 'max-h-none'
+              }`}
+            >
+              <div className="space-y-3">
+                {uploadQueue.map((item) => (
+                  <div key={item.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-900">{item.file.name}</span>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          item.status === 'pending'
+                            ? 'bg-gray-100 text-gray-600'
+                            : item.status === 'uploading'
+                              ? 'bg-blue-100 text-blue-600'
+                              : item.status === 'completed'
+                                ? 'bg-green-100 text-green-600'
+                                : 'bg-red-100 text-red-600'
+                        }`}
                       >
-                        Retry
-                      </button>
+                        {item.status === 'pending'
+                          ? 'Pending'
+                          : item.status === 'uploading'
+                            ? 'Uploading'
+                            : item.status === 'completed'
+                              ? 'Completed'
+                              : 'Failed'}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {item.status === 'uploading' && (
+                      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${item.progress}%` }}
+                        ></div>
+                      </div>
+                    )}
+
+                    {item.status === 'failed' && item.error && (
+                      <div className="mt-2">
+                        <p className="text-xs text-red-600 mb-2">
+                          {formatErrorMessage(item.error)}
+                        </p>
+                        <button
+                          onClick={() => handleRetryUpload(item.id)}
+                          className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors duration-200"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Search Button - Show when all uploads are completed */}
@@ -497,7 +546,11 @@ export const FileUploadSection: React.FC = () => {
           }}
         >
           {selectedFiles.length > 0 && (
-            <FileList files={selectedFiles} onRemoveFile={handleRemoveFile} />
+            <FileList
+              files={selectedFiles}
+              onRemoveFile={handleRemoveFile}
+              onUploadAll={handleUploadFiles}
+            />
           )}
         </div>
 
@@ -526,7 +579,7 @@ export const FileUploadSection: React.FC = () => {
                 disabled={isUploading}
                 className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Upload Files
+                Upload All
               </button>
             </>
           )}

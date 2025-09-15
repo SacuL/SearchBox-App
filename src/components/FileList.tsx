@@ -4,9 +4,10 @@ import { getFileTypeIconColor, getFileTypeDisplayName } from '~/utils/fileTypeCo
 interface FileListProps {
   files: File[];
   onRemoveFile: (index: number) => void;
+  onUploadAll?: () => void;
 }
 
-export const FileList: React.FC<FileListProps> = ({ files, onRemoveFile }) => {
+export const FileList: React.FC<FileListProps> = ({ files, onRemoveFile, onUploadAll }) => {
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -29,7 +30,17 @@ export const FileList: React.FC<FileListProps> = ({ files, onRemoveFile }) => {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-gray-700">Selected Files ({files.length})</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-700">Selected Files ({files.length})</h3>
+        {onUploadAll && files.length > 5 && (
+          <button
+            onClick={onUploadAll}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          >
+            Upload All
+          </button>
+        )}
+      </div>
 
       <div className="space-y-2">
         {files.map((file, index) => (

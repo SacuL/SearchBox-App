@@ -3,9 +3,17 @@ import { useState } from 'react';
 import { SearchBar } from '../components/SearchBar';
 import { LastUploadedFiles } from '../components/LastUploadedFiles';
 import { Navigation } from '../components/Navigation';
+import { trpc } from '~/utils/trpc';
 
 const SearchPage: NextPageWithLayout = () => {
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Get list of uploaded files to check if there are any files
+  const filesList = trpc.upload.listFiles.useQuery(undefined, {
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+  });
 
   const handleFileClick = (fileId: string, fileName: string) => {
     // This could be used to pre-fill the search with the file name
@@ -27,8 +35,11 @@ const SearchPage: NextPageWithLayout = () => {
           {/* Search Section */}
           <SearchBar onSearchPerformed={() => setHasSearched(true)} />
 
-          {/* Show recent files only when no search has been performed */}
-          {!hasSearched && <LastUploadedFiles onFileClick={handleFileClick} />}
+          {/* Show recent files only when no search has been performed AND there are files uploaded */}
+          {!hasSearched &&
+            filesList.data?.success &&
+            filesList.data.data &&
+            filesList.data.data.length > 0 && <LastUploadedFiles onFileClick={handleFileClick} />}
         </div>
       </div>
     </div>
