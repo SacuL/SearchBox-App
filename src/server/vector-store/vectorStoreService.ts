@@ -208,9 +208,16 @@ export class VectorStoreService {
       // Keep only the latest 3 files
       const filesToDelete = indexFiles.slice(3);
       filesToDelete.forEach(({ file }) => {
-        const filePath = path.join(this.indexDirectory, file);
-        fs.unlinkSync(filePath);
-        console.log(`🗑️ Deleted old index file: ${file}`);
+        try {
+          const filePath = path.join(this.indexDirectory, file);
+          fs.unlinkSync(filePath);
+          console.log(`🗑️ Deleted old index file: ${file}`);
+        } catch (deleteError) {
+          // Ignore permission errors, files might be in use
+          if ((deleteError as any).code !== 'EPERM') {
+            console.warn(`⚠️ Could not delete old index file ${file}:`, deleteError);
+          }
+        }
       });
     } catch (error) {
       console.error('❌ Error cleaning up old index files:', error);
