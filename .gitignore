@@ -49,3 +49,5 @@ playwright/test-results
 
 
 .env
+
+faiss-indexes/*

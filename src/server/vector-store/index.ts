@@ -1,5 +1,5 @@
 // Export the singleton functions
-export { getVectorStoreService, resetVectorStoreService } from './singleton';
+export { getVectorStoreService, resetVectorStoreService } from './vectorStoreService';
 
 // Re-export types if needed
-export type { VectorStoreService } from './singleton';
+export type { VectorStoreService } from './vectorStoreService';

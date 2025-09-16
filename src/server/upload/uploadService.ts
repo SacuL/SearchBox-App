@@ -1,7 +1,7 @@
 import { storeFile } from '../file-storage';
 import { extractFileContent } from '../text-extraction';
 import { FlexSearchFactory } from '../search';
-import { getVectorStoreService } from '../vector-store/singleton';
+import { getVectorStoreService } from '../vector-store/vectorStoreService';
 import { UploadRequest, UploadResult, UploadConfig } from './types';
 import { UPLOAD_CONFIG } from './config';
 

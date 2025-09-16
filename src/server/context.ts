@@ -2,7 +2,7 @@
 import type * as trpcNext from '@trpc/server/adapters/next';
 import { initializeStorage } from './file-storage/init';
 import { initializeSearchService } from './search/init';
-import { getVectorStoreService } from './vector-store/singleton';
+import { getVectorStoreService } from './vector-store/vectorStoreService';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface CreateContextOptions {
