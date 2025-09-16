@@ -5,6 +5,9 @@ import { Document } from '@langchain/core/documents';
 import { StorageFactory } from '../file-storage';
 import { env } from '../env';
 import { extractFileContent } from '../text-extraction';
+import * as fs from 'fs';
+import * as path from 'path';
+import { randomUUID } from 'crypto';
 
 /**
  * VectorStoreService singleton instance
@@ -14,7 +17,24 @@ export class VectorStoreService {
   private faissStore: FaissStore | null = null;
   private embeddings: GoogleGenerativeAIEmbeddings | null = null;
   private textSplitter: RecursiveCharacterTextSplitter | null = null;
-  private processedFiles: Set<string> = new Set<string>();
+  private indexDirectory: string;
+  private indexTimestamp: number | null = null;
+
+  constructor() {
+    // Create index directory in the project root
+    this.indexDirectory = path.join(process.cwd(), 'faiss-indexes');
+    this.ensureIndexDirectory();
+  }
+
+  /**
+   * Ensure the index directory exists
+   */
+  private ensureIndexDirectory(): void {
+    if (!fs.existsSync(this.indexDirectory)) {
+      fs.mkdirSync(this.indexDirectory, { recursive: true });
+      console.log(`📁 Created FAISS index directory: ${this.indexDirectory}`);
+    }
+  }
 
   /**
    * Check if an error is a rate limit error
@@ -61,6 +81,143 @@ export class VectorStoreService {
   }
 
   /**
+   * Get the most recent FAISS index file
+   */
+  private getLatestIndexFile(): string | null {
+    try {
+      const files = fs.readdirSync(this.indexDirectory);
+      const indexFiles = files
+        .filter((file) => file.startsWith('faiss-index-') && file.endsWith('.faiss'))
+        .map((file) => {
+          const regex = /faiss-index-(\d+)\.faiss/;
+          const timestampMatch = regex.exec(file);
+          return {
+            file,
+            timestamp: timestampMatch ? parseInt(timestampMatch[1]) : 0,
+          };
+        })
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      return indexFiles.length > 0 ? indexFiles[0].file : null;
+    } catch (error) {
+      console.error('❌ Error reading index directory:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Save FAISS index to file with timestamp
+   */
+  private async saveIndexToFile(): Promise<boolean> {
+    if (!this.faissStore) {
+      console.log('⚠️ No FAISS store to save');
+      return false;
+    }
+
+    try {
+      const timestamp = Date.now();
+      const guid = randomUUID();
+      const tempFileName = `faiss-index-${guid}.faiss.tmp`;
+      const finalFileName = `faiss-index-${timestamp}.faiss`;
+
+      const tempPath = path.join(this.indexDirectory, tempFileName);
+      const finalPath = path.join(this.indexDirectory, finalFileName);
+
+      // Save to temporary file first
+      await this.faissStore.save(tempPath);
+
+      // Rename to final file (atomic operation)
+      fs.renameSync(tempPath, finalPath);
+
+      // Update timestamp
+      this.indexTimestamp = timestamp;
+
+      console.log(`💾 FAISS index saved to: ${finalFileName}`);
+
+      // Clean up old index files (keep only the latest 3)
+      this.cleanupOldIndexFiles();
+
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to save FAISS index:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Load FAISS index from file
+   */
+  private async loadIndexFromFile(): Promise<boolean> {
+    try {
+      const latestFile = this.getLatestIndexFile();
+      if (!latestFile) {
+        console.log('📁 No FAISS index file found');
+        return false;
+      }
+
+      const filePath = path.join(this.indexDirectory, latestFile);
+
+      // Extract timestamp from filename
+      const regex = /faiss-index-(\d+)\.faiss/;
+      const timestampMatch = regex.exec(latestFile);
+      if (timestampMatch) {
+        this.indexTimestamp = parseInt(timestampMatch[1]);
+      }
+
+      // Initialize embeddings if not already done
+      if (!this.embeddings) {
+        if (!env.GOOGLE_API_KEY) {
+          console.warn('⚠️ GOOGLE_API_KEY not found, cannot load FAISS index');
+          return false;
+        }
+        this.embeddings = new GoogleGenerativeAIEmbeddings({
+          apiKey: env.GOOGLE_API_KEY,
+          model: 'models/gemini-embedding-001',
+        });
+      }
+
+      // Load the FAISS store
+      this.faissStore = await FaissStore.load(filePath, this.embeddings);
+
+      console.log(`📂 FAISS index loaded from: ${latestFile} (timestamp: ${this.indexTimestamp})`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to load FAISS index:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Clean up old index files, keeping only the latest 3
+   */
+  private cleanupOldIndexFiles(): void {
+    try {
+      const files = fs.readdirSync(this.indexDirectory);
+      const indexFiles = files
+        .filter((file) => file.startsWith('faiss-index-') && file.endsWith('.faiss'))
+        .map((file) => {
+          const regex = /faiss-index-(\d+)\.faiss/;
+          const timestampMatch = regex.exec(file);
+          return {
+            file,
+            timestamp: timestampMatch ? parseInt(timestampMatch[1]) : 0,
+          };
+        })
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      // Keep only the latest 3 files
+      const filesToDelete = indexFiles.slice(3);
+      filesToDelete.forEach(({ file }) => {
+        const filePath = path.join(this.indexDirectory, file);
+        fs.unlinkSync(filePath);
+        console.log(`🗑️ Deleted old index file: ${file}`);
+      });
+    } catch (error) {
+      console.error('❌ Error cleaning up old index files:', error);
+    }
+  }
+
+  /**
    * Initialize the vector store components
    */
   private async initializeComponents(): Promise<boolean> {
@@ -89,6 +246,17 @@ export class VectorStoreService {
         });
       }
 
+      // Try to load existing FAISS index from file first
+      if (!this.faissStore) {
+        console.log('🔍 Attempting to load FAISS index from file...');
+        const loaded = await this.loadIndexFromFile();
+        if (loaded) {
+          console.log('✅ FAISS index loaded successfully from file');
+        } else {
+          console.log('📁 No existing FAISS index found, will create new one when needed');
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('❌ Failed to initialize vector store components:', error);
@@ -109,12 +277,6 @@ export class VectorStoreService {
     content: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // Check if file was already processed
-      if (this.processedFiles.has(fileId)) {
-        console.log(`📄 File ${fileName} already processed, skipping...`);
-        return { success: true };
-      }
-
       // Initialize components
       const initialized = await this.initializeComponents();
       if (!initialized) {
@@ -172,9 +334,10 @@ export class VectorStoreService {
         }
       }
 
-      // Mark file as processed
-      this.processedFiles.add(fileId);
       console.log(`✅ Document ${fileName} added to vector store successfully`);
+
+      // Save the updated index to file
+      await this.saveIndexToFile();
 
       return { success: true };
     } catch (error) {
@@ -216,12 +379,6 @@ export class VectorStoreService {
       const documents: Document[] = [];
       for (const fileMetadata of files) {
         try {
-          // Skip if already processed
-          if (this.processedFiles.has(fileMetadata.id)) {
-            console.log(`📄 File ${fileMetadata.fileName} already processed, skipping...`);
-            continue;
-          }
-
           // Get file content
           const fileBuffer = await storage.getFile(fileMetadata.id);
           if (fileBuffer) {
@@ -242,8 +399,6 @@ export class VectorStoreService {
                 },
               });
               documents.push(document);
-              // Mark as processed
-              this.processedFiles.add(fileMetadata.id);
               console.log(`✅ Processed file: ${fileMetadata.fileName}`);
             } else {
               console.warn(`⚠️ Could not extract content from: ${fileMetadata.fileName}`);
@@ -270,6 +425,9 @@ export class VectorStoreService {
         console.log('🏗️ Creating FAISS vector store...');
         this.faissStore = await FaissStore.fromDocuments(splitDocuments, this.embeddings!);
         console.log('✅ Vector store built successfully');
+
+        // Save the built index to file
+        await this.saveIndexToFile();
       } catch (faissError) {
         console.error('❌ FAISS vector store creation failed:', faissError);
         this.faissStore = null;
@@ -297,28 +455,16 @@ export class VectorStoreService {
     k = 4,
   ): Promise<{ success: boolean; data?: any[]; error?: string }> {
     try {
-      // If no vector store exists, try to build it from existing files
-      if (!this.faissStore) {
-        console.log(
-          '🔍 No vector store found for search, attempting to build from existing files...',
-        );
-        const buildResult = await this.buildVectorStore();
-        if (!buildResult.success) {
-          return {
-            success: false,
-            error: 'Vector store not available and could not be built from existing files.',
-          };
-        }
-      }
-
-      if (!this.faissStore) {
+      // Check if vector store is available (this will try to load from file or build if needed)
+      const isAvailable = await this.isAvailable();
+      if (!isAvailable) {
         return {
           success: false,
-          error: 'Vector store not built. Call buildVectorStore() first.',
+          error: 'Vector store not available and could not be built from existing files.',
         };
       }
 
-      const results = await this.faissStore.similaritySearch(query, k);
+      const results = await this.faissStore!.similaritySearch(query, k);
       return {
         success: true,
         data: results,
@@ -333,18 +479,56 @@ export class VectorStoreService {
   }
 
   /**
+   * Check if the current index is up-to-date with the latest file
+   */
+  private isIndexUpToDate(): boolean {
+    if (!this.indexTimestamp) {
+      return false;
+    }
+
+    const latestFile = this.getLatestIndexFile();
+    if (!latestFile) {
+      return false;
+    }
+
+    const regex = /faiss-index-(\d+)\.faiss/;
+    const timestampMatch = regex.exec(latestFile);
+    if (!timestampMatch) {
+      return false;
+    }
+
+    const fileTimestamp = parseInt(timestampMatch[1]);
+    return this.indexTimestamp >= fileTimestamp;
+  }
+
+  /**
    * Check if vector store is available and built
    */
   async isAvailable(): Promise<boolean> {
     try {
-      // If no vector store exists, try to build it from existing files
+      // If no vector store exists, try to load from file first
       if (this.faissStore === null) {
-        console.log('🔍 No vector store found, attempting to build from existing files...');
-        const buildResult = await this.buildVectorStore();
-        if (buildResult.success) {
-          console.log('✅ Vector store built successfully from existing files');
+        console.log('🔍 No vector store in memory, attempting to load from file...');
+        const loaded = await this.loadIndexFromFile();
+        if (loaded) {
+          console.log('✅ Vector store loaded from file');
         } else {
-          console.log('⚠️ Could not build vector store from existing files:', buildResult.error);
+          console.log('📁 No index file found, attempting to build from existing files...');
+          const buildResult = await this.buildVectorStore();
+          if (buildResult.success) {
+            console.log('✅ Vector store built successfully from existing files');
+          } else {
+            console.log('⚠️ Could not build vector store from existing files:', buildResult.error);
+          }
+        }
+      } else {
+        // Check if the in-memory index is up-to-date with the file
+        if (!this.isIndexUpToDate()) {
+          console.log('🔄 Index file is newer than in-memory index, reloading...');
+          const loaded = await this.loadIndexFromFile();
+          if (loaded) {
+            console.log('✅ Vector store reloaded from newer file');
+          }
         }
       }
 
@@ -352,7 +536,7 @@ export class VectorStoreService {
       console.log('🔍 Vector store availability check:', {
         faissStore: !!this.faissStore,
         isAvailable,
-        processedFilesCount: this.processedFiles.size,
+        indexTimestamp: this.indexTimestamp,
       });
       return isAvailable;
     } catch (error) {
@@ -368,30 +552,15 @@ export class VectorStoreService {
     this.faissStore = null;
     this.embeddings = null;
     this.textSplitter = null;
-    this.processedFiles.clear();
-  }
-
-  /**
-   * Get the number of processed files
-   */
-  getProcessedFilesCount(): number {
-    return this.processedFiles.size;
-  }
-
-  /**
-   * Check if a file has been processed
-   */
-  isFileProcessed(fileId: string): boolean {
-    return this.processedFiles.has(fileId);
+    this.indexTimestamp = null;
   }
 
   /**
    * Force rebuild the vector store from scratch
-   * This clears the processed files tracking and rebuilds everything
+   * This rebuilds everything from the beginning
    */
   async forceRebuildVectorStore(): Promise<{ success: boolean; error?: string }> {
     console.log('🔄 Force rebuilding vector store from scratch...');
-    this.processedFiles.clear();
     this.faissStore = null;
     return await this.buildVectorStore();
   }

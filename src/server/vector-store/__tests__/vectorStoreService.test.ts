@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { VectorStoreService } from '../index';
+import { getVectorStoreService, resetVectorStoreService } from '../index';
 
 // Mock all external dependencies
 vi.mock('../../file-storage', () => ({
@@ -40,6 +40,14 @@ vi.mock('@langchain/community/vectorstores/faiss', () => ({
       similaritySearch: vi
         .fn()
         .mockResolvedValue([{ pageContent: 'test content', metadata: { fileId: 'test-id' } }]),
+      save: vi.fn().mockResolvedValue(undefined),
+    }),
+    load: vi.fn().mockResolvedValue({
+      addDocuments: vi.fn().mockResolvedValue(undefined),
+      similaritySearch: vi
+        .fn()
+        .mockResolvedValue([{ pageContent: 'test content', metadata: { fileId: 'test-id' } }]),
+      save: vi.fn().mockResolvedValue(undefined),
     }),
   },
 }));
@@ -50,36 +58,48 @@ vi.mock('@langchain/textsplitters', () => ({
   })),
 }));
 
+// Mock file system operations
+vi.mock('fs', () => ({
+  existsSync: vi.fn().mockReturnValue(true),
+  mkdirSync: vi.fn(),
+  readdirSync: vi.fn().mockReturnValue([]),
+  renameSync: vi.fn(),
+  unlinkSync: vi.fn(),
+}));
+
+vi.mock('path', () => ({
+  join: vi.fn().mockImplementation((...args) => args.join('/')),
+}));
+
+vi.mock('crypto', () => ({
+  randomUUID: vi.fn().mockReturnValue('test-uuid-123'),
+}));
+
 describe('VectorStoreService', () => {
+  let vectorStoreService: any;
+
   beforeEach(() => {
-    VectorStoreService.reset();
+    resetVectorStoreService();
+    vectorStoreService = getVectorStoreService();
   });
 
   afterEach(() => {
-    VectorStoreService.reset();
+    resetVectorStoreService();
   });
 
   describe('basic functionality', () => {
     it('should initialize without errors', () => {
-      expect(VectorStoreService).toBeDefined();
-    });
-
-    it('should track processed files count', () => {
-      expect(VectorStoreService.getProcessedFilesCount()).toBe(0);
-    });
-
-    it('should check if file is processed', () => {
-      expect(VectorStoreService.isFileProcessed('test-id')).toBe(false);
+      expect(vectorStoreService).toBeDefined();
     });
 
     it('should check vector store availability', async () => {
-      expect(await VectorStoreService.isAvailable()).toBe(false);
+      expect(await vectorStoreService.isAvailable()).toBe(false);
     });
   });
 
   describe('addDocumentToVectorStore', () => {
     it('should add a document successfully', async () => {
-      const result = await VectorStoreService.addDocumentToVectorStore(
+      const result = await vectorStoreService.addDocumentToVectorStore(
         'test-id',
         'test-file.txt',
         'test-file.txt',
@@ -90,13 +110,11 @@ describe('VectorStoreService', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(VectorStoreService.isFileProcessed('test-id')).toBe(true);
-      expect(VectorStoreService.getProcessedFilesCount()).toBe(1);
     });
 
-    it('should skip already processed files', async () => {
+    it('should add the same document multiple times', async () => {
       // Add document first time
-      await VectorStoreService.addDocumentToVectorStore(
+      const result1 = await vectorStoreService.addDocumentToVectorStore(
         'test-id',
         'test-file.txt',
         'test-file.txt',
@@ -107,7 +125,7 @@ describe('VectorStoreService', () => {
       );
 
       // Try to add the same document again
-      const result = await VectorStoreService.addDocumentToVectorStore(
+      const result2 = await vectorStoreService.addDocumentToVectorStore(
         'test-id',
         'test-file.txt',
         'test-file.txt',
@@ -117,8 +135,8 @@ describe('VectorStoreService', () => {
         'This is test content',
       );
 
-      expect(result.success).toBe(true);
-      expect(VectorStoreService.getProcessedFilesCount()).toBe(1); // Should still be 1
+      expect(result1.success).toBe(true);
+      expect(result2.success).toBe(true);
     });
   });
 
@@ -141,10 +159,9 @@ describe('VectorStoreService', () => {
       // Mock getFile to return actual content
       mockStorage.getFile.mockResolvedValue(Buffer.from('test content'));
 
-      const result = await VectorStoreService.buildVectorStore();
+      const result = await vectorStoreService.buildVectorStore();
 
       expect(result.success).toBe(true);
-      expect(VectorStoreService.getProcessedFilesCount()).toBe(1);
     });
 
     it('should handle empty storage', async () => {
@@ -153,24 +170,23 @@ describe('VectorStoreService', () => {
 
       mockStorage.listFiles.mockResolvedValue([]);
 
-      const result = await VectorStoreService.buildVectorStore();
+      const result = await vectorStoreService.buildVectorStore();
 
       expect(result.success).toBe(true);
-      expect(VectorStoreService.getProcessedFilesCount()).toBe(0);
     });
   });
 
   describe('similaritySearch', () => {
     it('should return error when vector store is not built', async () => {
-      const result = await VectorStoreService.similaritySearch('test query', 5);
+      const result = await vectorStoreService.similaritySearch('test query', 5);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Vector store not built');
+      expect(result.error).toContain('Vector store not available');
     });
 
     it('should perform search when vector store exists', async () => {
       // First create a vector store
-      await VectorStoreService.addDocumentToVectorStore(
+      await vectorStoreService.addDocumentToVectorStore(
         'test-id',
         'test-file.txt',
         'test-file.txt',
@@ -180,7 +196,7 @@ describe('VectorStoreService', () => {
         'This is test content',
       );
 
-      const result = await VectorStoreService.similaritySearch('test query', 5);
+      const result = await vectorStoreService.similaritySearch('test query', 5);
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
@@ -190,7 +206,7 @@ describe('VectorStoreService', () => {
   describe('reset functionality', () => {
     it('should reset vector store state', async () => {
       // Add some documents
-      await VectorStoreService.addDocumentToVectorStore(
+      await vectorStoreService.addDocumentToVectorStore(
         'test-id-1',
         'test-file-1.txt',
         'test-file-1.txt',
@@ -200,7 +216,7 @@ describe('VectorStoreService', () => {
         'This is test content 1',
       );
 
-      await VectorStoreService.addDocumentToVectorStore(
+      await vectorStoreService.addDocumentToVectorStore(
         'test-id-2',
         'test-file-2.txt',
         'test-file-2.txt',
@@ -210,21 +226,19 @@ describe('VectorStoreService', () => {
         'This is test content 2',
       );
 
-      expect(VectorStoreService.getProcessedFilesCount()).toBe(2);
-      expect(await VectorStoreService.isAvailable()).toBe(true);
+      expect(await vectorStoreService.isAvailable()).toBe(true);
 
       // Reset
-      VectorStoreService.reset();
+      vectorStoreService.reset();
 
-      expect(VectorStoreService.getProcessedFilesCount()).toBe(0);
-      expect(await VectorStoreService.isAvailable()).toBe(false);
+      expect(await vectorStoreService.isAvailable()).toBe(false);
     });
   });
 
   describe('forceRebuildVectorStore', () => {
-    it('should force rebuild and clear processed files', async () => {
+    it('should force rebuild vector store', async () => {
       // First add some documents
-      await VectorStoreService.addDocumentToVectorStore(
+      await vectorStoreService.addDocumentToVectorStore(
         'test-id-1',
         'test-file-1.txt',
         'test-file-1.txt',
@@ -233,8 +247,6 @@ describe('VectorStoreService', () => {
         new Date(),
         'This is test content 1',
       );
-
-      expect(VectorStoreService.getProcessedFilesCount()).toBe(1);
 
       // Setup mock for rebuild
       const { StorageFactory } = await import('../../file-storage');
@@ -262,10 +274,9 @@ describe('VectorStoreService', () => {
       // Mock getFile to return actual content
       mockStorage.getFile.mockResolvedValue(Buffer.from('test content'));
 
-      const result = await VectorStoreService.forceRebuildVectorStore();
+      const result = await vectorStoreService.forceRebuildVectorStore();
 
       expect(result.success).toBe(true);
-      expect(VectorStoreService.getProcessedFilesCount()).toBe(2);
     });
   });
 });
