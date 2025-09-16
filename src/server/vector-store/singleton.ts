@@ -17,6 +17,50 @@ export class VectorStoreService {
   private processedFiles: Set<string> = new Set<string>();
 
   /**
+   * Check if an error is a rate limit error
+   */
+  private isRateLimitError(error: Error): boolean {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('rate limit') ||
+      message.includes('429') ||
+      message.includes('quota exceeded') ||
+      message.includes('too many requests') ||
+      message.includes('resource exhausted')
+    );
+  }
+
+  /**
+   * Convert technical errors to user-friendly messages
+   */
+  private getUserFriendlyErrorMessage(error: unknown): string {
+    if (!(error instanceof Error)) {
+      return 'An unexpected error occurred while processing your documents.';
+    }
+
+    const message = error.message.toLowerCase();
+
+    if (this.isRateLimitError(error)) {
+      return 'The search service is temporarily busy due to high demand. Please try again in a few minutes. Your documents are still being processed in the background.';
+    }
+
+    if (message.includes('api key') || message.includes('authentication')) {
+      return 'Search service configuration issue. Please contact support.';
+    }
+
+    if (message.includes('network') || message.includes('timeout')) {
+      return 'Network connection issue. Please check your internet connection and try again.';
+    }
+
+    if (message.includes('quota') || message.includes('billing')) {
+      return 'Search service quota exceeded. Please try again later or contact support.';
+    }
+
+    // Generic fallback
+    return 'Unable to process your documents for search. Please try again or contact support if the issue persists.';
+  }
+
+  /**
    * Initialize the vector store components
    */
   private async initializeComponents(): Promise<boolean> {
@@ -103,13 +147,29 @@ export class VectorStoreService {
       if (this.faissStore === null) {
         // Create new vector store if none exists
         console.log('🏗️ Creating new FAISS vector store...');
-        this.faissStore = await FaissStore.fromDocuments(splitDocuments, this.embeddings!);
-        console.log('✅ New vector store created successfully');
+        try {
+          this.faissStore = await FaissStore.fromDocuments(splitDocuments, this.embeddings!);
+          console.log('✅ New vector store created successfully');
+        } catch (error) {
+          console.error('❌ Failed to create vector store:', error);
+          return {
+            success: false,
+            error: this.getUserFriendlyErrorMessage(error),
+          };
+        }
       } else {
         // Add to existing vector store
         console.log('➕ Adding to existing FAISS vector store...');
-        await this.faissStore.addDocuments(splitDocuments);
-        console.log('✅ Document added to existing vector store');
+        try {
+          await this.faissStore.addDocuments(splitDocuments);
+          console.log('✅ Document added to existing vector store');
+        } catch (error) {
+          console.error('❌ Failed to add document to vector store:', error);
+          return {
+            success: false,
+            error: this.getUserFriendlyErrorMessage(error),
+          };
+        }
       }
 
       // Mark file as processed
@@ -215,17 +275,16 @@ export class VectorStoreService {
         this.faissStore = null;
         return {
           success: false,
-          error: `FAISS vector store creation failed: ${faissError instanceof Error ? faissError.message : String(faissError)}`,
+          error: this.getUserFriendlyErrorMessage(faissError),
         };
       }
 
       return { success: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Failed to build vector store:', errorMessage);
+      console.error('❌ Failed to build vector store:', error);
       return {
         success: false,
-        error: errorMessage,
+        error: this.getUserFriendlyErrorMessage(error),
       };
     }
   }
@@ -265,11 +324,10 @@ export class VectorStoreService {
         data: results,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Similarity search failed:', errorMessage);
+      console.error('❌ Similarity search failed:', error);
       return {
         success: false,
-        error: errorMessage,
+        error: this.getUserFriendlyErrorMessage(error),
       };
     }
   }
