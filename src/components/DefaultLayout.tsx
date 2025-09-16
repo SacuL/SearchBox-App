@@ -7,8 +7,8 @@ export const DefaultLayout = ({ children }: DefaultLayoutProps) => {
   return (
     <>
       <Head>
-        <title>Nextjs Starter</title>
-        <link rel="icon" href="/favicon.ico" />
+        <title>SearchBox - File Management made easy</title>
+        <link rel="icon" href="/favicon.png" type="image/png" />
       </Head>
 
       <main className="h-screen">{children}</main>
