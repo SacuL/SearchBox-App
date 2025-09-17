@@ -35,11 +35,9 @@ By storing files and metadata locally or in memory, we can quickly have a workin
 
 Search is the main feature of the App. I believe the best possible experience includes features like suggestions, fuzzy search, match highlighting (showing where in the file the term appears), semantic search, pagination (or infinite scroll), and filtering (by file name, type, or date).
 However, each of those features comes with trade-offs, such as increased system complexity, storage needs (e.g., index size), and processing power, in addition to the time required to actually implement them.
-We must carefully consider each feature in relation to its cost. After deciding on the underlying technology, we can revisit these requirements to reevaluate which features to keep, discard, or add. Initially, we selected the following set of desired features:
 
-1. Search filters by file name and type
-2. Fuzzy search: for simplicity, we will leverage fuzzy search from the chosen search index library (e.g., `FlexSearch`) or plug in a lightweight library (e.g., `Lunr`).
-3. Pagination
+We want to add semantic search using vectors as it a good opportunity to demonstrate the use of AI.
+A popular approach to semantic search is to use a pre trained model to embed the text into a vector space where vectors represent the meaning of the text based on their position in the space. By building an index of the extracted embedding we can then perform vector searches using algorithms for nearest neighbor search.
 
 ### File management
 
@@ -64,50 +62,32 @@ These items will not be included in this PoC due to time constraints and priorit
 
 1. Authentication and user isolation
 2. Upload from 3rd parties: Google Drive, Dropbox, etc
-3. Semantic search using vectors
-4. Production-grade persistent storage (e.g., cloud databases)
-5. Responsive layout for mobile users
-6. OCR/LLM parsing of files.
-7. There are many file types we could support. To name a few: rtf, ebooks (epub, mobi, etc), presentation (ppt, pptx), spreadsheets (xls, xlsx), OpenDocument formats (odt, odp, ods)
-8. Support for archives (zip, tar, rar, 7z): unpack and parse all files archived.
-9. Enable support for encodings other than UTF-8
+3. Production-grade persistent storage (e.g., cloud databases)
+4. Responsive layout for mobile users
+5. OCR/LLM parsing of files.
+6. There are many file types we could support. To name a few: rtf, ebooks (epub, mobi, etc), presentation (ppt, pptx), spreadsheets (xls, xlsx), OpenDocument formats (odt, odp, ods)
+7. Support for archives (zip, tar, rar, 7z): unpack and parse all files archived.
+8. Enable support for encodings other than UTF-8
 
 ## Technical Approach
 
-For the PoC, the implementation will be done using `Next.js` with `React`, combined with `trpc`, which provides a live TypeScript type check on Front and Backend. Files and their metadata will be stored in memory. Search will be handled by `FlexSearch`. Parsing of Docx files will be done by `mammoth.js` and text-based pdf content extraction by `pdf-parse`.
+For the PoC, the implementation will be done using `Next.js` with `React`, combined with `trpc`, which provides a live TypeScript type check on Front and Backend. Files and their metadata will be stored in memory. To build the vector search we will use [langchain](https://docs.langchain.com/oss/javascript/langchain/knowledge-base). Search will be handled by `FAISS` with Google Generative AI embeddings for semantic search. Parsing of Docx files will be done by `mammoth.js` and text-based pdf content extraction by `pdf-parse`.
+
+## Project tasks breakdown
+
+The development tasks were created on GitHub Projects, which automatically creates the issues on the GitHub repo. See SearchBox Project [here](https://github.com/users/SacuL/projects/3/views/1).
 
 ## The First version
 
-The first version of this PoC has been built to enable upload and search of documents. Everything is stored in memory: the files, the search index, and the files metadata.
+The first version of this PoC has been built to enable upload and search of documents. All files are stored in memory. The FAISS index is stored in memory but a copy is kept in a file to allow quicker rebuilding.
 Storage can be easily replaced later with proper storage solutions.
 
-The search supports fuzzy search using "full" [tokenizer](https://github.com/nextapps-de/flexsearch?tab=readme-ov-file#tokenizer-partial-match). For example, if the word `computer` was indexed, searching for `comp`, `uter`, `put`, or `computer` will all match.
+The search supports semantic search using FAISS vector store with Google Generative AI embeddings. This allows for finding documents based on meaning and context, not just exact text matches.
 
 ## Next steps
 
 For SearchBox to launch as a MVP it needs a few improvements. Currently, each instance of the app serves a single user, there is no authentication or persistent storage. The app needs to control user access and properly isolate user data.
 
-## Bonus!
+Also, some features were not fully implemented, like deletion of files or filtering by file format.
 
-To improve the search functionality, we want to add semantic search using vectors. Although initially out-of-scope, I consider it a good opportunity to demonstrate the use of AI.
-A popular approach to semantic search is to use a pre trained model to embed the text into a vector space where vectors represent the meaning of the text based on their position in the space. By building an index of the extracted embedding we can then perform vector searches using algorithms for nearest neighbor search.
-
-In this project we will use [Google Gemini](https://ai.google.dev/gemini-api/docs/embeddings) to generate the embeddings from the uploaded documents and [FAISS library](https://arxiv.org/abs/2401.08281) to perform the vector search.
-
-Additionally, building a vector search index is the first step in developing a Retrieval-Augmented Generation (RAG) solution, enabling contextually relevant document querying. By using the created index, we can build a system that retrieves the most relevant document chunks based on semantic similarity to a user’s query. In the RAG pipeline, these retrieved chunks serve as context for a large language model (LLM). For example, if a user uploads company policy documents outlining HR and IT guidelines, they could ask questions like, "What are the reimbursement rules for home office internet expenses?". The LLM then generates precise, context-aware responses by combining the retrieved document content with its generative capabilities, delivering answers based in the uploaded documents.
-For this POC, however, implementing the complete RAG solution is out of scope, and we will focus on building and testing the semantic search component to validate its effectiveness.
-
-### Building the vector search
-
-To build the vector search we will use [langchain](https://docs.langchain.com/oss/javascript/langchain/knowledge-base). To process the uploaded documents and create a searchable index we will follow these steps:
-
-1. Load documents using document loaders
-2. Split the document's texts into chunks using text splitters
-3. Load the chunks into a vector store
-
-The vector store can then be used to answer user queries.
-
-- Load documents using [langchain directory loaders](https://docs.langchain.com/oss/javascript/integrations/document_loaders/file_loaders/directory) and assigning the loaders we need:
-  - [pdf loader](https://docs.langchain.com/oss/javascript/integrations/document_loaders/file_loaders/pdf)
-  - [docx loader](https://docs.langchain.com/oss/javascript/integrations/document_loaders/file_loaders/docx)
-  - [text loader](https://docs.langchain.com/oss/javascript/integrations/document_loaders/file_loaders/text), for txt and md files
+The semantic search can also be further optimized by tunning some parameters like the threshold used when searching.

@@ -1,6 +1,5 @@
 import { storeFile } from '../file-storage';
 import { extractFileContent } from '../text-extraction';
-import { FlexSearchFactory } from '../search';
 import { getVectorStoreService } from '../vector-store/vectorStoreService';
 import { UploadRequest, UploadResult, UploadConfig } from './types';
 import { UPLOAD_CONFIG } from './config';
@@ -46,28 +45,10 @@ export class UploadService {
         // Continue with upload even if extraction fails
       }
 
-      // Step 3: Index the content (if extraction was successful and content exists)
-      let indexed = false;
-      if (extractResult.success && extractResult.content && storeResult.metadata) {
-        console.log('🔍 Step 3: Indexing content for search...');
-        const searchService = FlexSearchFactory.getService();
-        const indexResult = await searchService.indexFileContent(
-          storeResult.metadata,
-          extractResult.content,
-        );
-
-        if (indexResult.success) {
-          indexed = indexResult.indexed;
-        } else {
-          console.log('⚠️ Search indexing failed:', indexResult.error);
-          // Continue with upload even if indexing fails
-        }
-      }
-
-      // Step 4: Update vector store (if extraction was successful)
+      // Step 3: Update vector store (if extraction was successful)
       let vectorStoreUpdated = false;
       if (extractResult.success && extractResult.content && storeResult.metadata) {
-        console.log('🔍 Step 4: Adding document to vector store...');
+        console.log('🔍 Step 3: Adding document to vector store...');
         const vectorStoreService = getVectorStoreService();
         const vectorStoreResult = await vectorStoreService.addDocumentToVectorStore(
           storeResult.metadata.id,
@@ -98,7 +79,6 @@ export class UploadService {
           fileSize: storeResult.metadata!.fileSize,
           mimeType: storeResult.metadata!.mimeType,
           uploadDate: storeResult.metadata!.uploadDate,
-          indexed,
           vectorStoreUpdated,
           message: 'File uploaded successfully',
         },

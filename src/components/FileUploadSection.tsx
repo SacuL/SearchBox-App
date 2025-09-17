@@ -177,8 +177,8 @@ export const FileUploadSection: React.FC = () => {
             ),
           );
 
-          // Invalidate search index stats to trigger SearchBar to appear
-          utils.search.getIndexStats.invalidate();
+          // Invalidate vector store status to trigger SearchBar to appear
+          utils.search.isVectorStoreAvailable.invalidate();
         } else {
           // Mark as failed
           setUploadQueue((prev) =>
@@ -295,8 +295,8 @@ export const FileUploadSection: React.FC = () => {
           ),
         );
 
-        // Invalidate search index stats to trigger SearchBar to appear
-        utils.search.getIndexStats.invalidate();
+        // Invalidate vector store status to trigger SearchBar to appear
+        utils.search.isVectorStoreAvailable.invalidate();
       } else {
         // Mark as failed
         setUploadQueue((prev) =>

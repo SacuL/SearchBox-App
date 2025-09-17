@@ -11,7 +11,6 @@ export interface UploadResult {
     fileSize: number;
     mimeType: string;
     uploadDate: Date;
-    indexed: boolean;
     vectorStoreUpdated: boolean;
     message: string;
   };

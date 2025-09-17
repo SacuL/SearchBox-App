@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type * as trpcNext from '@trpc/server/adapters/next';
 import { initializeStorage } from './file-storage/init';
-import { initializeSearchService } from './search/init';
 import { getVectorStoreService } from './vector-store/vectorStoreService';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -19,13 +18,6 @@ export async function createContextInner(_opts: CreateContextOptions) {
     await initializeStorage();
   } catch (error) {
     console.error('Storage initialization failed:', error);
-  }
-
-  // Initialize search service on first context creation
-  try {
-    await initializeSearchService();
-  } catch (error) {
-    console.error('Search service initialization failed:', error);
   }
 
   // Get vector store service singleton

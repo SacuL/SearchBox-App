@@ -32,7 +32,7 @@ describe('Text Extraction', () => {
       const content = 'This is a test text file.';
       const buffer = Buffer.from(content, 'utf-8');
 
-      const result = await extractFileContent(buffer, 'test.txt', 'text/plain');
+      const result = await extractFileContent(buffer, 'test.txt');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe(content);
@@ -42,7 +42,7 @@ describe('Text Extraction', () => {
     it('should handle empty TXT files', async () => {
       const buffer = Buffer.from('', 'utf-8');
 
-      const result = await extractFileContent(buffer, 'empty.txt', 'text/plain');
+      const result = await extractFileContent(buffer, 'empty.txt');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe('');
@@ -51,7 +51,7 @@ describe('Text Extraction', () => {
     it('should handle TXT files with only whitespace', async () => {
       const buffer = Buffer.from('   \n\t  ', 'utf-8');
 
-      const result = await extractFileContent(buffer, 'whitespace.txt', 'text/plain');
+      const result = await extractFileContent(buffer, 'whitespace.txt');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe('   \n\t  '); // Content is no longer trimmed
@@ -63,7 +63,7 @@ describe('Text Extraction', () => {
       const content = '# Test Markdown\n\nThis is a **test** markdown file.';
       const buffer = Buffer.from(content, 'utf-8');
 
-      const result = await extractFileContent(buffer, 'test.md', 'text/markdown');
+      const result = await extractFileContent(buffer, 'test.md');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe(content);
@@ -86,7 +86,7 @@ const code = 'example';
 `;
       const buffer = Buffer.from(content, 'utf-8');
 
-      const result = await extractFileContent(buffer, 'complex.md', 'text/markdown');
+      const result = await extractFileContent(buffer, 'complex.md');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe(content); // Content is no longer trimmed
@@ -97,7 +97,7 @@ const code = 'example';
     it('should extract text from PDF files', async () => {
       const buffer = Buffer.from('fake pdf content');
 
-      const result = await extractFileContent(buffer, 'test.pdf', 'application/pdf');
+      const result = await extractFileContent(buffer, 'test.pdf');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe('Mock PDF content');
@@ -109,7 +109,7 @@ const code = 'example';
 
       const buffer = Buffer.from('invalid pdf');
 
-      const result = await extractFileContent(buffer, 'invalid.pdf', 'application/pdf');
+      const result = await extractFileContent(buffer, 'invalid.pdf');
 
       expect(result.success).toBe(false); // New extractor returns false on error
       expect(result.error).toBeDefined();
@@ -120,11 +120,7 @@ const code = 'example';
     it('should extract text from DOCX files', async () => {
       const buffer = Buffer.from('fake docx content');
 
-      const result = await extractFileContent(
-        buffer,
-        'test.docx',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      );
+      const result = await extractFileContent(buffer, 'test.docx');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe('Mock DOCX content');
@@ -133,11 +129,7 @@ const code = 'example';
     it('should handle DOCX files with various content', async () => {
       const buffer = Buffer.from('valid docx content');
 
-      const result = await extractFileContent(
-        buffer,
-        'valid.docx',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      );
+      const result = await extractFileContent(buffer, 'valid.docx');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe('Mock DOCX content');
@@ -148,7 +140,7 @@ const code = 'example';
     it('should attempt extraction for unsupported file types', async () => {
       const buffer = Buffer.from('some content');
 
-      const result = await extractFileContent(buffer, 'image.jpg', 'image/jpeg');
+      const result = await extractFileContent(buffer, 'image.jpg');
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -157,7 +149,7 @@ const code = 'example';
     it('should attempt extraction for files with no extension', async () => {
       const buffer = Buffer.from('some content');
 
-      const result = await extractFileContent(buffer, 'noextension', 'text/plain');
+      const result = await extractFileContent(buffer, 'noextension');
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -179,7 +171,7 @@ const code = 'example';
 
       for (const fileName of unsupportedTypes) {
         const buffer = Buffer.from('content');
-        const result = await extractFileContent(buffer, fileName, 'application/octet-stream');
+        const result = await extractFileContent(buffer, fileName);
 
         expect(result.success).toBe(false);
         expect(result.error).toBeDefined();
@@ -204,7 +196,7 @@ const code = 'example';
       ];
 
       for (const fileName of testCases) {
-        const result = await extractFileContent(buffer, fileName, 'text/plain');
+        const result = await extractFileContent(buffer, fileName);
         expect(result.success).toBe(true);
       }
     });
@@ -213,7 +205,7 @@ const code = 'example';
       const content = 'Test content';
       const buffer = Buffer.from(content, 'utf-8');
 
-      const result = await extractFileContent(buffer, 'my.document.txt', 'text/plain');
+      const result = await extractFileContent(buffer, 'my.document.txt');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe(content);
@@ -225,7 +217,7 @@ const code = 'example';
       // Test error handling through PDF parsing error (already tested above)
       const buffer = Buffer.from('test content');
 
-      const result = await extractFileContent(buffer, 'test.txt', 'text/plain');
+      const result = await extractFileContent(buffer, 'test.txt');
 
       // This should work normally
       expect(result.success).toBe(true);
@@ -238,7 +230,7 @@ const code = 'example';
       const content = 'Special chars: àáâãäåæçèéêë ñöøùúûüýþÿ';
       const buffer = Buffer.from(content, 'utf-8');
 
-      const result = await extractFileContent(buffer, 'special.txt', 'text/plain');
+      const result = await extractFileContent(buffer, 'special.txt');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe(content);
@@ -248,7 +240,7 @@ const code = 'example';
       const content = 'Unicode: 🚀 📄 🔍 ✅ ❌';
       const buffer = Buffer.from(content, 'utf-8');
 
-      const result = await extractFileContent(buffer, 'unicode.txt', 'text/plain');
+      const result = await extractFileContent(buffer, 'unicode.txt');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe(content);
@@ -258,7 +250,7 @@ const code = 'example';
       const largeContent = 'A'.repeat(100000); // 100KB of 'A's
       const buffer = Buffer.from(largeContent, 'utf-8');
 
-      const result = await extractFileContent(buffer, 'large.txt', 'text/plain');
+      const result = await extractFileContent(buffer, 'large.txt');
 
       expect(result.success).toBe(true);
       expect(result.content).toBe(largeContent);

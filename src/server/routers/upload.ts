@@ -1,16 +1,22 @@
 import { publicProcedure, router } from '../trpc';
-import { FlexSearchFactory } from '../search';
+import { StorageFactory } from '../file-storage';
 
 export const uploadRouter = router({
-  // List last 5 uploaded files from search service
+  // List uploaded files from storage
   listFiles: publicProcedure.query(async () => {
     try {
-      const searchService = FlexSearchFactory.getService();
-      const files = searchService.getLastDocuments(5);
+      const storage = await StorageFactory.getStorage('memory');
+      // Can be optimized later to fetch only the last 5 directly from the storage
+      const allFiles = await storage.listFiles();
+
+      // Return the last 5 files, sorted by upload date (newest first)
+      const sortedFiles = allFiles
+        .sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime())
+        .slice(0, 5);
 
       return {
         success: true,
-        data: files,
+        data: sortedFiles,
       };
     } catch (error) {
       return {

@@ -34,7 +34,6 @@
     "better-sqlite3": "^12.2.0",
     "clsx": "^2.0.0",
     "faiss-node": "^0.5.1",
-    "flexsearch": "^0.8.212",
     "langchain": "^0.3.33",
     "lucide-react": "^0.542.0",
     "mammoth": "^1.10.0",
