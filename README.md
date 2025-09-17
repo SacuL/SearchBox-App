@@ -96,7 +96,7 @@ This project was built with [Cursor](https://cursor.com/), and 4 cursor rules fi
 - [backend-rules.mdc](.cursor/backend-rules.mdc): includes rules for TypeScript, Next.js, and tRPC
 - [frontend-rules.mdc](.cursor/frontend-rules.mdc): rules for HTML, CSS, Tailwind, and React
 - [testing-rules.mdc](.cursor/testing-rules.mdc): apply to any file inside playwright folder or files ending in `.test.ts`.
-- [rules.mdc](.cursor/rules.mdc): apply to the role project and includes software development rules
+- [rules.mdc](.cursor/rules.mdc): apply to the whole project and includes software development rules
 
 ## Project tasks breakdown
 
