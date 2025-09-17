@@ -7,12 +7,17 @@ export const searchRouter = router({
     .input(
       z.object({
         query: z.string().min(1, 'Search query is required'),
-        limit: z.number().min(1).max(20).optional().default(4),
+        limit: z.number().min(1).max(20).optional().default(10),
+        threshold: z.number().min(0).max(1).optional(),
       }),
     )
     .query(async ({ input, ctx }) => {
       try {
-        const result = await ctx.vectorStoreService.similaritySearch(input.query, input.limit);
+        const result = await ctx.vectorStoreService.similaritySearchWithThreshold(
+          input.query,
+          input.limit,
+          input.threshold,
+        );
         return result;
       } catch (error) {
         return {

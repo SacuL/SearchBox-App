@@ -17,7 +17,6 @@ const SearchPage: NextPageWithLayout = () => {
 
   const handleFileClick = (fileId: string, fileName: string) => {
     // This could be used to pre-fill the search with the file name
-    // For now, we'll just trigger a search for the file name
     console.log('File clicked:', fileName);
   };
 

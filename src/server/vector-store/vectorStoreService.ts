@@ -20,6 +20,12 @@ export class VectorStoreService {
   private indexDirectory: string;
   private indexTimestamp: number | null = null;
 
+  // Configuration constants
+  // Similarity threshold: 0.0 = very loose (returns more results), 1.0 = very strict (returns fewer results)
+  // Default 0.25 means only results with 25%+ similarity will be returned
+  private static readonly DEFAULT_SIMILARITY_THRESHOLD = 0.25;
+  private static readonly DEFAULT_SEARCH_LIMIT = 10;
+
   constructor() {
     // Create index directory in the project root
     this.indexDirectory = path.join(process.cwd(), 'faiss-indexes');
@@ -478,6 +484,60 @@ export class VectorStoreService {
       };
     } catch (error) {
       console.error('❌ Similarity search failed:', error);
+      return {
+        success: false,
+        error: this.getUserFriendlyErrorMessage(error),
+      };
+    }
+  }
+
+  /**
+   * Perform similarity search with score threshold filtering
+   */
+  async similaritySearchWithThreshold(
+    query: string,
+    k = VectorStoreService.DEFAULT_SEARCH_LIMIT,
+    threshold = VectorStoreService.DEFAULT_SIMILARITY_THRESHOLD,
+  ): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+      // Check if vector store is available (this will try to load from file or build if needed)
+      const isAvailable = await this.isAvailable();
+      if (!isAvailable) {
+        return {
+          success: false,
+          error: 'Vector store not available and could not be built from existing files.',
+        };
+      }
+
+      // Use similaritySearchWithScore to get results with similarity scores
+      const resultsWithScores = await this.faissStore!.similaritySearchWithScore(query, k);
+
+      // print resutls with scores:
+      resultsWithScores.forEach(([doc, score]) => {
+        console.log(`🔍 Result: ${doc.pageContent} - Score: ${score}`);
+      });
+
+      // Filter results based on similarity threshold
+      // Note: FAISS returns distance scores (lower is better), so we need to convert to similarity
+      // For FAISS, we can use 1 - distance as a similarity score, or use a distance threshold
+      const filteredResults = resultsWithScores
+        .filter(([_, score]) => {
+          const distanceThreshold = 1 - threshold; // Convert similarity threshold to distance threshold
+          console.log(`🔍 Score: ${score} - Distance Threshold: ${distanceThreshold}`);
+          return score <= distanceThreshold;
+        })
+        .map(([doc, _]) => doc); // Extract just the documents, not the scores
+
+      console.log(
+        `🔍 Search query: "${query}" - Found ${resultsWithScores.length} results, ${filteredResults.length} above threshold ${threshold}`,
+      );
+
+      return {
+        success: true,
+        data: filteredResults,
+      };
+    } catch (error) {
+      console.error('❌ Similarity search with threshold failed:', error);
       return {
         success: false,
         error: this.getUserFriendlyErrorMessage(error),
