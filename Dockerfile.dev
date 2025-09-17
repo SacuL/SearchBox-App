@@ -1,0 +1,50 @@
+# Development Dockerfile for SearchBox App
+FROM node:18-bullseye-slim
+
+# Install build dependencies for native modules
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    cmake \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Copy package.json and pnpm-lock.yaml
+COPY package.json pnpm-lock.yaml* ./
+
+# Install dependencies (including dev dependencies) with rebuild for native modules
+RUN pnpm install
+
+# Force rebuild faiss-node for the container architecture
+RUN pnpm rebuild faiss-node
+
+# General rebuild for other native modules
+RUN pnpm rebuild
+
+# Copy the rest of the application code
+COPY . .
+
+# Create a non-root user for security
+RUN groupadd -g 1001 nodejs
+RUN useradd -r -u 1001 -g nodejs nextjs
+
+RUN chown nextjs:nodejs /app
+USER nextjs
+
+# Expose the port that the app runs on
+EXPOSE 3000
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV PORT=3000
+
+# Start the development server
+CMD ["pnpm", "dev"]
