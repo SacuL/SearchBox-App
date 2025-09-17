@@ -84,6 +84,36 @@ Storage can be easily replaced later with proper storage solutions.
 
 The search supports semantic search using FAISS vector store with Google Generative AI embeddings. This allows for finding documents based on meaning and context, not just exact text matches.
 
+## Running the App
+
+### Docker (recommended)
+
+See [DOCKER.MD](DOCKER.MD) file for instructions.
+
+### Locally
+
+Make sure the .env file has the `GOOGLE_API_KEY` set.
+```bash
+# Install pnpm
+npm install -g pnpm
+
+# Install dependencies
+pnpm install
+
+# Run dev
+pnpm dev
+```
+
+## Running tests
+
+```bash
+# unit
+pnpm test-unit
+
+# integration
+pnpm test-e2e
+```
+
 ## Next steps
 
 For SearchBox to launch as a MVP it needs a few improvements. Currently, each instance of the app serves a single user, there is no authentication or persistent storage. The app needs to control user access and properly isolate user data.
