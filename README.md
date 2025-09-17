@@ -71,7 +71,7 @@ These items will not be included in this PoC due to time constraints and priorit
 
 ## Technical Approach
 
-For the PoC, the implementation will be done using `Next.js` with `React`, combined with `trpc`, which provides a live TypeScript type check on Front and Backend. Files and their metadata will be stored in memory. To build the vector search we will use [langchain](https://docs.langchain.com/oss/javascript/langchain/knowledge-base). Search will be handled by `FAISS` with Google Generative AI embeddings for semantic search. Parsing of Docx files will be done by `mammoth.js` and text-based pdf content extraction by `pdf-parse`.
+For the PoC, the implementation will be done using `Next.js` with `React`, combined with `trpc`, which provides a live TypeScript type check on Front and Backend. Files and their metadata will be stored in memory. To build the vector search we will use [langchain](https://docs.langchain.com/oss/javascript/langchain/knowledge-base). Search will be handled by [FAISS](https://arxiv.org/abs/2401.08281) with Google Generative AI [embeddings](https://js.langchain.com/docs/integrations/text_embedding/google_generativeai/) for semantic search. Parsing of Docx files will be done by [mammoth.js](https://github.com/mwilliamson/mammoth.js) and text-based pdf content extraction by [pdf-parse](https://gitlab.com/autokent/pdf-parse).
 
 ## Project tasks breakdown
 
@@ -92,7 +92,7 @@ See [DOCKER.MD](DOCKER.MD) file for instructions.
 
 ### Locally
 
-Make sure the .env file has the `GOOGLE_API_KEY` set.
+Make sure the .env file has the `GOOGLE_API_KEY` set. Get a free one [here](https://aistudio.google.com/app/apikey).
 ```bash
 # Install pnpm
 npm install -g pnpm
