@@ -321,7 +321,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium text-gray-900">
-                            {result.metadata?.fileName || `Document ${index + 1}`}
+                            {result.metadata?.originalName ||
+                              result.metadata?.fileName ||
+                              `Document ${index + 1}`}
                           </h4>
                           <span
                             className={`text-xs px-2 py-1 rounded-full ${getFileTypeColors(getFileExtension(result.metadata?.fileName || result.metadata?.originalName || '')).bg} ${getFileTypeColors(getFileExtension(result.metadata?.fileName || result.metadata?.originalName || '')).text}`}
@@ -347,7 +349,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearchPerformed }) => {
                               onClick={() =>
                                 handleDownload(
                                   result.metadata.fileId,
-                                  result.metadata.fileName || 'document',
+                                  result.metadata.originalName ||
+                                    result.metadata.fileName ||
+                                    'document',
                                 )
                               }
                               className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
