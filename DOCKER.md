@@ -6,20 +6,7 @@ This document explains how to run the SearchBox app using Docker.
 
 - Docker installed on your system
 - Docker Compose (usually included with Docker Desktop)
-- Google API Key for vector store embeddings
-
-## Environment Setup
-
-1. Copy the environment example file:
-
-   ```bash
-   cp env.example .env
-   ```
-
-2. Edit `.env` and add your Google API key:
-   ```
-   GOOGLE_API_KEY=your_actual_google_api_key_here
-   ```
+- Google API Key for vector store embeddings. Get a free one [here](https://aistudio.google.com/app/apikey).
 
 ## Build Process
 
@@ -31,6 +18,16 @@ The Docker build process includes several important steps for native dependencie
 - **Native Modules**: Ensures all native Node.js modules are properly compiled for the container architecture
 
 The build may take several minutes due to the compilation of native dependencies, especially `faiss-node`.
+
+## Basic execution
+
+```bash
+# Build
+docker build -t searchbox-app . 
+
+# Run
+docker run --rm -p 3000:3000 -e GOOGLE_API_KEY=key searchbox-app
+```
 
 ## Running with Docker Compose
 
@@ -103,26 +100,17 @@ The FAISS vector store indexes are persisted using Docker volumes. This means:
 - Data is stored in a Docker volume named `faiss-indexes`
 - To completely reset the app, use `docker-compose down -v`
 
-## Health Checks
-
-The production container includes a health check that verifies the application is responding. You can check the health status with:
-
-```bash
-docker-compose ps
-```
-
 ## Troubleshooting
 
 ### Container won't start
 
-- Check that your `.env` file exists and contains a valid `GOOGLE_API_KEY`
 - Ensure port 3000 is not already in use
 - Check Docker logs: `docker-compose logs searchbox-app`
 
 ### Vector store not working
 
 - Verify your Google API key is correct and has the necessary permissions
-- Check the **rate LIMIT** on your key
+- Check the **rate LIMIT** on your key: [Gemini API Usage](https://aistudio.google.com/app/usage).
 - Check the container logs for API-related errors
 - Ensure the FAISS indexes volume is properly mounted
 - If you see "Could not import faiss-node" errors, the native bindings may not have compiled correctly. Try rebuilding the image with `docker build --no-cache -t searchbox-app .`
