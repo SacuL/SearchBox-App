@@ -88,7 +88,7 @@ The search supports semantic search using FAISS vector store with Google Generat
 
 ### Docker (recommended)
 
-See [DOCKER.MD](DOCKER.MD) file for instructions.
+See [DOCKER.md](DOCKER.md) file for instructions.
 
 ### Locally
 
