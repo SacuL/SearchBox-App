@@ -2,6 +2,20 @@
 
 Upload and search the contents of your files!
 
+## Demo
+
+On the below example, we upload 3 files, each one containing a specific word:
+
+- Txt: `car`
+- Docx: `automobile`
+- Pdf: `vehicle`
+
+<p align="center" style="display: flex; align-items: flex-start; justify-content: center;">
+  <img alt="SearchBox App example video" title="SearchBox App example video" src="./searchbox-example.gif">
+</p>
+
+The search for any of these words matches all 3 files, as they are close semantically. Searching for an unrelated term, like banana, return nothing.
+
 ## Requirements
 
 The goal of the app is to provide the best possible experience for uploading files and searching for content inside them.
@@ -93,6 +107,7 @@ See [DOCKER.md](DOCKER.md) file for instructions.
 ### Locally
 
 Make sure the .env file has the `GOOGLE_API_KEY` set. Get a free one [here](https://aistudio.google.com/app/apikey).
+
 ```bash
 # Install pnpm
 npm install -g pnpm
@@ -123,5 +138,3 @@ Also, some features were not fully implemented, like deletion of files or filter
 The CI pipeline is not executing the integration tests correctly. This needs further investigation.
 
 FInally, the semantic search can also be further optimized by tunning some parameters like the threshold used when searching.
-
-
