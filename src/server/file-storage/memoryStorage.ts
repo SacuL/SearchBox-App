@@ -8,8 +8,8 @@ import { StorageInterface, FileMetadata, StorageResult, FileUploadOptions } from
  * This is a simple implementation that can be easily replaced with a database later
  */
 export class MemoryStorage implements StorageInterface {
-  private files: Map<string, Buffer> = new Map();
-  private metadata: Map<string, FileMetadata> = new Map();
+  private files: Map<string, Buffer> = new Map<string, Buffer>();
+  private metadata: Map<string, FileMetadata> = new Map<string, FileMetadata>();
 
   /**
    * Initialize the storage (no-op for in-memory storage)
@@ -57,7 +57,7 @@ export class MemoryStorage implements StorageInterface {
       const {
         generateUniqueName = true,
         preserveOriginalName = false,
-        createSubdirectories = true, // Note: Not applicable for in-memory storage
+        createSubdirectories: _createSubdirectories = true, // Note: Not applicable for in-memory storage
       } = options;
 
       const fileId = this.generateFileId();
