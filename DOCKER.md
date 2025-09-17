@@ -5,7 +5,6 @@ This document explains how to run the SearchBox app using Docker.
 ## Prerequisites
 
 - Docker installed on your system
-- Docker Compose (usually included with Docker Desktop)
 - Google API Key for vector store embeddings. Get a free one [here](https://aistudio.google.com/app/apikey).
 
 ## Build Process
