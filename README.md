@@ -120,4 +120,8 @@ For SearchBox to launch as a MVP it needs a few improvements. Currently, each in
 
 Also, some features were not fully implemented, like deletion of files or filtering by file format.
 
-The semantic search can also be further optimized by tunning some parameters like the threshold used when searching.
+The CI pipeline is not executing the integration tests correctly. This needs further investigation.
+
+FInally, the semantic search can also be further optimized by tunning some parameters like the threshold used when searching.
+
+
